@@ -1,0 +1,31 @@
+[Unit]
+Description=storm-ui
+After=docker.service
+Requires=docker.service
+
+[Service]
+EnvironmentFile=-/etc/environment
+ExecStartPre=-/usr/bin/docker kill %p
+ExecStartPre=-/usr/bin/docker rm %p
+ExecStartPre=/usr/bin/docker pull obzen-reg:5000/obzen/%p:0.10.0
+ExecStartPre=-/usr/bin/mkdir -p /data/storm
+ExecStartPre=/usr/bin/bash -c "while [[ ! $$(/usr/bin/etcdctl get /storm-nimbus) ]]; do echo 'Waiting for Storm Nimbus node'; sleep 1; done; echo 'Storm Nimbus node is UP'; /usr/bin/etcdctl get /storm-nimbus"
+ExecStart=/usr/bin/bash -c \
+            "HOST_NAME=$${COREOS_PUBLIC_IPV4:-$$(hostname -i)} \
+            && NIMBUS_HOST=$(/usr/bin/etcdctl get /storm-nimbus | /usr/bin/tr -d '\n') \
+            && ZK=$(fleetctl list-machines -no-legend=true -fields=ip | tr '\n' ',' | sed s'/,$//') \
+            && exec /usr/bin/docker run --rm --name %p \
+            -m 256m \
+            -e HOST_NAME=$HOST_NAME \
+            -e HOSTNAME=$HOST_NAME \
+            -e NIMBUS_HOST=$NIMBUS_HOST \
+            -e ZK=$ZK \
+            -p 8080:8080 \
+            -v /data/storm:/data/storm \
+            obzen-reg:5000/obzen/%p:0.10.0"
+ExecStop=/usr/bin/docker stop %p
+TimeoutStartSec=900s
+
+[X-Fleet]
+Conflicts=%p.service
+MachineMetadata=machine-id=1

@@ -1,0 +1,23 @@
+[Unit]
+Description=Google Container Advisor
+After=docker.service flanneld.service
+Requires=docker.service flanneld.service
+
+[Service]
+EnvironmentFile=-/etc/environment
+
+ExecStartPre=-/usr/bin/docker kill cadvisor-%i
+ExecStartPre=-/usr/bin/docker rm cadvisor-%i
+ExecStartPre=-/usr/bin/docker pull obzen-reg:5000/obzen/cadvisor:0.22.0
+ExecStartPre=/bin/sh -c "docker inspect cadvisor >/dev/null 2>&1 && docker rm -f cadvisor || true"
+ExecStart=/usr/bin/docker run --volume=/:/rootfs:ro --volume=/var/run:/var/run:rw --volume=/sys:/sys:ro --volume=/var/lib/docker/:/var/lib/docker:ro --publish=8080:8080 --name=cadvisor-%i obzen-reg:5000/obzen/cadvisor:0.22.0
+
+ExecStopPost=-/usr/bin/docker rm -f cadvisor-%i
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
+[X-Fleet]
+Conflicts=cadvisor@*.service

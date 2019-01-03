@@ -1,0 +1,40 @@
+[Unit]
+Description=Influxdb 0.13.0
+After=docker.service flanneld.service
+Requires=docker.service flanneld.service
+
+[Service]
+Restart=always
+RestartSec=10s
+
+EnvironmentFile=-/etc/environment
+ExecStartPre=-/usr/bin/docker kill %p-%i
+ExecStartPre=-/usr/bin/docker rm %p-%i
+ExecStartPre=/usr/bin/docker pull obzen-reg:5000/obzen/%p:0.13.0
+ExecStartPre=-/usr/bin/mkdir -p /data/influxdb
+#ExecStartPre=-/usr/bin/docker run -v /var/lib/%p:/data --name influxdb /bin/echo "Data volume container for %p-%i"
+
+ExecStart=/usr/bin/bash -c \
+          "INFLUXDB=$(/usr/bin/fleetctl list-machines -fields='ip,metadata' -no-legend=true | awk -F'[=\t]' '{print \"server.\"$3\"=\"$1\":8083:8086\"}' | tr '\n' ' ') \
+          && exec /usr/bin/docker run --name %p-%i \
+          --hostname %H \
+          -m 512m \
+          -e INFLUXDB=\"$INFLUXDB\" \
+          -p 8083:8083 \
+          -p 8086:8086 \
+          -p 8090:8090 \
+          -p 8099:8099 \
+          -p 25826:25826/udp \
+          -v /data/influxdb/:/var/lib/influxdb \
+          obzen-reg:5000/obzen/%p:0.13.0"
+
+ExecStartPost=/usr/bin/bash -c '/usr/bin/etcdctl set /services/influxdb/%i $${COREOS_PUBLIC_IPV4:-$$(hostname -i)}:8083'
+ExecStop=/usr/bin/docker stop %p-%i
+ExecStop=/usr/bin/docker rm %p-%i
+ExecStopPost=/usr/bin/bash -c '/usr/bin/etcdctl rm /services/influxdb/%i'
+SuccessExitStatus=143
+TimeoutSec=900s
+
+[X-Fleet]
+Conflicts=%p@*.service
+MachineMetadata=machine-id=%i
