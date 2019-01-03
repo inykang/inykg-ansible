@@ -1,0 +1,20 @@
+---
+
+- name: destroy remaining flink nodes - taskmanager
+  shell: docker {{ item }} {{ group_prefix }}-flink-taskmanager
+  with_items:
+    - stop
+    - rm
+
+- name: destroy flink master node - jobmanager
+  when: ansible_hostname == flink_master_host
+  shell: docker {{ item }} {{ group_prefix }}-flink-jobmanager
+  with_items:
+    - stop
+    - rm
+
+- name: ensure flink data directory absent - {{ flink_mount_root }}/{{ group_prefix }}/flink
+  become: true
+  file:
+    path: '{{ flink_mount_root }}/{{ group_prefix }}/flink'
+    state: absent

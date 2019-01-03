@@ -1,0 +1,28 @@
+---
+
+- hosts: elks
+  any_errors_fatal: true
+#  gather_facts: no
+  vars:
+    group_prefix: prod
+    use_log_driver: false
+    public_interface: ansible_eno1
+  tasks:
+    - name: gethering hostnames
+      debug: msg={{ hostvars[item][public_interface]['ipv4']['address'] }}
+      with_items:
+        - '{{ ansible_play_hosts }}'
+      register: ip_addresses
+
+    - name: make ip_list environment variable value
+      debug: msg={{ ip_addresses.results | map(attribute='msg') | join('\",\"') }} 
+#      debug: msg="{{ip_addresses.results | map(attribute='msg') | join(',') | regex_replace('\\\'', '\'')}}" 
+#      debug: msg="{{ip_addresses.results}}" 
+      register: ip_list
+
+    - name: set hosts
+      replace:
+        path: /home/ecube/Obzen/test.txt
+        regexp: '%ip_list%'
+        replace: "{{ ip_list.msg }}"
+

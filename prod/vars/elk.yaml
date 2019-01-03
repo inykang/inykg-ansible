@@ -1,0 +1,11 @@
+---
+
+elk_overlay_name: lognet
+elk_mount_root: /share
+elk_publish_9200: 9200
+elk_publish_9300: 9300
+elk_publish_5601: 5601
+elk_publish_12201: 12201
+elasticsearch_image: prireg:5000/elasticsearch:2.4.1
+kibana_image: prireg:5000/kibana:4.6.2
+logstash_image: prireg:5000/logstash:2.4.0-1

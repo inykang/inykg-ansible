@@ -1,0 +1,19 @@
+---
+
+- name: uninstall etcd
+  become: true
+  yum: name=etcd state=absent
+#
+- name: delete etcd data dir
+  become: true
+  file: path={{ etcd_data_dir }} state=absent
+#
+- name: configure firewall 
+  become: true
+  command: firewall-cmd {{ item }}
+  with_items:
+    - --remove-port={{ etcd_client_port }}/tcp --permanent
+    - --remove-port={{ etcd_peer_port }}/tcp --permanent
+    - --reload
+#
+#EOF

@@ -1,0 +1,88 @@
+---
+
+- name: install etcd
+  become: true
+  yum: name=etcd state=present
+#
+- name: ensure etcd data dir
+  become: true
+  file: path={{ etcd_data_dir }} state=directory owner=etcd group=etcd
+#
+- name: find my ip address
+  debug: msg="{{ hostvars[inventory_hostname][public_interface]['ipv4']['address'] }}"
+  register: my_ip_address
+
+- name: find my peeer urls
+  debug: msg="{{ 'http://' + my_ip_address.msg  + ':' + etcd_peer_port|string }}"
+  register: listen_peer_urls_debug
+
+- name: find my client urls
+  debug: msg="{{ 'http://' + my_ip_address.msg  + ':' + etcd_client_port|string + ',http://127.0.0.1' + ':' + etcd_client_port|string }}"
+  register: listen_client_urls_debug
+
+- name: find my advertise client urls
+  debug: msg="{{ 'http://' + my_ip_address.msg  + ':' + etcd_client_port|string }}"
+  register: advertise_client_urls_debug
+
+- name: find initial cluster members
+  debug: msg="{{ item + '=http://' + hostvars[item][public_interface]['ipv4']['address'] + ':' + etcd_peer_port|string }}"
+  with_items:
+    - "{{ play_hosts }}"
+  register: member_ip_debug
+
+- name: make initial cluster members
+  debug: msg="{{ member_ip_debug.results | map(attribute='msg') | join(',') }}"
+  register: member_string_debug
+#
+- name: edit etcd.conf
+  become: true
+  lineinfile: dest=/etc/etcd/etcd.conf regexp={{ item.pattern }} line={{ item.change }}
+  with_items:
+    - { pattern: "^ETCD_NAME=*", change: 'ETCD_NAME="{{ inventory_hostname }}"' }
+    - { pattern: "^ETCD_DATA_DIR=*", change: 'ETCD_DATA_DIR={{ etcd_data_dir }}' }
+    - { pattern: "^ETCD_LISTEN_PEER_URLS=*", change: 'ETCD_LISTEN_PEER_URLS="{{ listen_peer_urls_debug.msg }}"' }
+    - { pattern: "^ETCD_LISTEN_CLIENT_URLS=*", change: 'ETCD_LISTEN_CLIENT_URLS="{{ listen_client_urls_debug.msg }}"' }
+    - { pattern: "^ETCD_INITIAL_ADVERTISE_PEER_URLS=*", change: 'ETCD_INITIAL_ADVERTISE_PEER_URLS="{{ listen_peer_urls_debug.msg }}"' }
+    - { pattern: "^ETCD_ADVERTISE_CLIENT_URLS=*", change: 'ETCD_ADVERTISE_CLIENT_URLS="{{ advertise_client_urls_debug.msg }}"' }
+    - { pattern: "^ETCD_INITIAL_CLUSTER=*", change: 'ETCD_INITIAL_CLUSTER="{{ member_string_debug.msg }}"' }
+    - { pattern: "^ETCD_INITIAL_CLUSTER_TOKEN=*", change: 'ETCD_INITIAL_CLUSTER_TOKEN="etcd-cluster"' }
+    - { pattern: "^ETCD_INITIAL_CLUSTER_STATE=*", change: 'ETCD_INITIAL_CLUSTER_STATE="new"' }
+#
+- name: configure etcd service - ensure etcd.service.d
+  become: true
+  file: path=/etc/systemd/system/etcd.service.d state=directory
+
+- name: create etcd.conf in etcd.service.d
+  become: true
+  template: src=files/etcd.service.conf.j2 dest=/etc/systemd/system/etcd.service.d/etcd.service.conf
+#
+- name: configure firewall for etcd
+  become: true
+  command: firewall-cmd {{ item }}
+  with_items:
+    - --add-port={{ etcd_client_port }}/tcp --permanent
+    - --add-port={{ etcd_peer_port }}/tcp --permanent
+    - --reload
+#
+- name: enable and start etcd service
+  become: true
+  command: systemctl {{ item }}
+  with_items:
+    - daemon-reload
+    - enable etcd
+    - restart etcd
+#
+- name: wait for etcd cluster up
+  local_action: wait_for host={{ ansible_host }} port={{ item }} state=started delay=5 timeout=300
+  with_items: 
+    - "{{ etcd_peer_port }}"
+    - "{{ etcd_client_port }}"
+  any_errors_fatal: true
+#
+#
+- name: print member list
+  command: etcdctl member list
+  register: etcd_member_list
+#
+- debug: var=etcd_member_list.stdout_lines
+#EOF

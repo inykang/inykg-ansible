@@ -1,0 +1,48 @@
+#!/usr/bin/with-contenv sh
+
+#check variables
+# NAME_NODE_HOST
+# NAME_NODE_FS_PORT
+# RESOURCE_MANAGER_HOST
+# RESOURCE_MANAGER_PORT 8032
+## RESOURCE_MANAGER_ADMIN_PORT 8033
+# RESOURCE_MANAGER_SCHEDULER_PORT 8030
+# RESOURCE_MANAGER_RESOURCE_TRACKER_PORT 8031
+
+if [ -z ${NAME_NODE_HOST+x} ]; then
+  echo environment varialbe NAME_NODE_HOST is unset. exiting...
+  exit 1
+fi
+if [ -z ${NAME_NODE_FS_PORT+x} ]; then
+  echo environment varialbe NAME_NODE_FS_PORT is unset. exiting...
+  exit 1
+fi
+#if [ -z ${RESOURCE_MANAGER_HOST+x} ]; then
+#  echo environment varialbe RESOURCE_MANAGER_HOST is unset. exiting...
+#  exit 1
+#fi
+#if [ -z ${RESOURCE_MANAGER_PORT+x} ]; then
+#  echo environment varialbe RESOURCE_MANAGER_PORT is unset. exiting...
+#  exit 1
+#fi
+#if [ -z ${RESOURCE_MANAGER_ADMIN_PORT+x} ]; then
+#  echo environment varialbe RESOURCE_MANAGER_ADMIN_PORT is unset. exiting...
+#  exit 1
+#fi
+#if [ -z ${RESOURCE_MANAGER_SCHEDULER_PORT+x} ]; then
+#  echo environment varialbe RESOURCE_MANAGER_SCHEDULER_PORT is unset. exiting...
+#  exit 1
+#fi
+#if [ -z ${RESOURCE_MANAGER_RESOURCE_TRACKER_PORT+x} ]; then
+#  echo environment varialbe RESOURCE_MANAGER_RESOURCE_TRACKER_PORT is unset. exiting...
+#  exit 1
+#fi
+
+# substitude configurations
+su-exec hduser sed -i "s/%fs.defaultFS.address%/${NAME_NODE_HOST}:${NAME_NODE_FS_PORT}/g" $YARN_CONF_DIR/core-site.xml
+#su-exec hduser sed -i "s/%yarn.resourcemanager.address%/${RESOURCE_MANAGER_HOST}:${RESOURCE_MANAGER_PORT}/g" $YARN_CONF_DIR/yarn-site.xml
+#su-exec hduser sed -i "s/%yarn.resourcemanager.scheduler.address%/${RESOURCE_MANAGER_HOST}:${RESOURCE_MANAGER_SCHEDULER_PORT}/g" $YARN_CONF_DIR/yarn-site.xml
+#su-exec hduser sed -i "s/%yarn.resourcemanager.resource-tracker.address%/${RESOURCE_MANAGER_HOST}:${RESOURCE_MANAGER_RESOURCE_TRACKER_PORT}/g" $YARN_CONF_DIR/yarn-site.xml
+
+echo "starting job history server..."
+exec su-exec hduser $HADOOP_PREFIX/bin/mapred historyserver

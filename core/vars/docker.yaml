@@ -1,0 +1,4 @@
+---
+
+docker_engine_version: 17.05.0.ce
+docker_remote_port: { protocol: tcp, port: 2375 }

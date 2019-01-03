@@ -1,0 +1,14 @@
+---
+#
+- name: stop and remove Kafka cluster members
+  shell: "{{ item }}"
+  with_items:
+    - docker stop {{ group_prefix }}-kafka
+    - docker rm {{ group_prefix }}-kafka
+  tags: ['kafka-except-data']
+
+- name: remove kafka mount directory - {{ kafka_mount_root }}/{{ group_prefix }}/kafka
+  become: true
+  file: 
+    path: '{{ kafka_mount_root }}/{{ group_prefix }}/kafka'
+    state: absent

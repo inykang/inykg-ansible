@@ -1,0 +1,27 @@
+---
+- hosts: cents
+  any_errors_fatal: true
+  vars:
+    group_prefix: prod
+    use_log_driver: false
+  vars_files:
+    - vars/zookeeper.yaml
+    - vars/kafka.yaml
+    - vars/spark.yaml
+    - vars/ignite.yaml
+  tasks:
+    - import_tasks: tasks/restore-kafka.yaml
+      tags: ['kafka']
+
+    - import_tasks: tasks/restore-zookeeper.yaml
+      tags: ['zookeeper']
+
+# depends on zookeeper
+#    - import_tasks: tasks/enable-hadoop.yaml
+#      tags: ['hadoop']
+
+#    - import_tasks: tasks/enable-spark.yaml
+#      tags: ['spark']
+
+#    - import_tasks: tasks/enable-ignite.yaml
+#      tags: ['ignite']

@@ -1,0 +1,42 @@
+---
+- hosts: cents
+  any_errors_fatal: true
+  vars:
+#    public_interface: ansible_enp0s17
+    group_prefix: prod
+    use_log_driver: false
+  vars_files:
+    - vars/zookeeper.yaml
+  tasks:
+# Make zookeeper member list
+    - name: find my ZOO ID
+      shell: echo "{{ item }}"
+      when: ansible_hostname == play_hosts[item|int -1] 
+      with_sequence: count={{ play_hosts | length }}
+      register: my_id_map
+    
+    - name: set my ZOO ID
+      debug:
+        msg: "{{ my_id_map.results | selectattr('stdout', 'defined') | map(attribute='stdout') | join('') }}"
+      register: my_id
+    
+    - name: retrieve IP addresses of hosts
+      shell: echo "server.{{ item }}:{{ hostvars[play_hosts[item|int - 1]][public_interface]['ipv4']['address']}}:{{ zookeeper_publish_2888 }}:{{ zookeeper_publish_3888 }}"
+      with_sequence: count={{ play_hosts | length }}
+      register: zoo_servers_list
+    
+    - name: make ZOO servers string
+      debug:
+        msg: "{{ zoo_servers_list.results | map(attribute='stdout') | join(' ') }}"
+      register: zoo_servers_string
+    
+    # Example string: "server.1=0.0.0.0:2888:3888 server.2=172.17.8.102:2888:3888 server.3=172.17.8.103:2888:3888"
+    - name: change ZOO servers string (my IP to 0.0.0.0)
+      debug:
+        msg: "{{ zoo_servers_string['msg'] | regex_replace(hostvars[ansible_hostname][public_interface]['ipv4']['address'], '0.0.0.0') }}"
+      register: zoo_servers
+    
+    
+    - name: test loops
+      shell: echo {{ item }}
+      with_items: "{{ zoo_servers.msg.split(' ') | list }}" 

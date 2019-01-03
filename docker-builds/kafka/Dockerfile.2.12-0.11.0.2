@@ -1,0 +1,30 @@
+FROM prireg:5000/alpine-s6-jdk8:3.4-8u112
+
+ENV KAFKA_VERSION 0.11.0.2
+ENV SCALA_VERSION 2.12
+
+RUN wget -q -O - http://apache.mirror.cdnetworks.com/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz | tar zxvf - -C /opt \
+    && ln -s /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION} /opt/kafka \
+    && mkdir -p /data/kafka
+
+COPY server.properties.template /opt/kafka/config/server.properties.template
+COPY log4j.properties.template /opt/kafka/config/log4j.properties.template
+
+#COPY kafka-run-class.sh /opt/kafka/bin/kafka-run-class.sh
+#COPY kafka-server-start.sh /opt/kafka/bin/kafka-server-start.sh
+#RUN chmod 755 /opt/kafka/bin/kafka-run-class.sh
+#RUN chmod 755 /opt/kafka/bin/kafka-server-start.sh
+
+COPY run-kafka /etc/services.d/kafka/run
+COPY finish /etc/services.d/kafka/finish
+RUN chmod 755 /etc/services.d/kafka/run
+RUN chmod 755 /etc/services.d/kafka/finish
+
+# For JMX
+EXPOSE 9012
+# For Kafka Client
+EXPOSE 9092
+
+WORKDIR /opt/kafka
+
+VOLUME ["/data/kafka"]

@@ -1,0 +1,4 @@
+---
+
+host_entries:
+  - { host: "prireg", ip: "192.168.10.136" }

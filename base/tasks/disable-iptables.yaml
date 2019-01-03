@@ -1,0 +1,8 @@
+---
+
+  - name: Stop and disable iptables service
+    become: true
+    service: 
+      name: iptables 
+      enabled: no 
+      state: stopped

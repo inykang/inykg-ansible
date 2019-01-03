@@ -1,0 +1,34 @@
+---
+
+#- hosts: cents
+- hosts: elks
+  any_errors_fatal: true
+  vars:
+    group_prefix: prod
+  vars_files:
+    - vars/zookeeper.yaml
+    - vars/kafka.yaml
+    - vars/hadoop.yaml
+    - vars/spark.yaml
+    - vars/ignite.yaml
+    - vars/elk.yaml
+  tasks:
+#    - import_tasks: tasks/destroy-ignite.yaml
+#      tags: ['ignite']
+
+#    - import_tasks: tasks/destroy-spark-standalone.yaml
+#      tags: ['spark']
+
+#    - import_tasks: tasks/destroy-hadoop.yaml
+#      tags: ['hadoop']
+#
+    - import_tasks: tasks/destroy-kafka.yaml
+      tags: ['kafka']
+
+    - import_tasks: tasks/destroy-zookeeper.yaml
+      tags: ['zookeeper']
+
+    - import_tasks: tasks/uninstall-elasticsearch.yaml
+      tags: ['elk','elasticsearch']
+    - import_tasks: tasks/uninstall-kibana.yaml
+      tags: ['elk','kibana']

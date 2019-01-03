@@ -1,0 +1,64 @@
+FROM prireg:5000/alpine-s6-jdk8:3.4-8u112
+MAINTAINER Hun Jae Lee <hunjae.lee@gmail.com>
+
+ENV HADOOP_VERSION=2.7.4 \
+    HADOOP_PREFIX=/opt/hadoop \
+    HADOOP_HOME=/opt/hadoop \
+    HADOOP_COMMON_HOME=/opt/hadoop \
+    HADOOP_HDFS_HOME=/opt/hadoop \
+    HADOOP_MAPRED_HOME=/opt/hadoop \
+    HADOOP_YARN_HOME=/opt/hadoop \
+    HADOOP_YARN_USER=hadoop \
+    HADOOP_LOG_DIR=/data/logs \
+    YARN_LOG_DIR=/data/logs 
+
+ENV HADOOP_CONF_DIR=$HADOOP_PREFIX/etc/hadoop \
+    YARN_CONF_DIR=$HADOOP_PREFIX/etc/hadoop 
+
+RUN apk add --update --no-cache openssh procps libstdc++ \
+    && addgroup hdgroup && adduser -D -G hdgroup -s /bin/bash hduser \
+# Generate Host Keys for SSH
+    && ssh-keygen -A \
+# Generate RSA Key for ROOT
+    && ssh-keygen -q -N "" -t rsa -f /root/.ssh/id_rsa \
+    && cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys \
+# Generate RSA Key for hduser
+    && su-exec hduser ssh-keygen -q -N "" -t rsa -f /home/hduser/.ssh/id_rsa \
+    && su-exec hduser cat /home/hduser/.ssh/id_rsa.pub >> /home/hduser/.ssh/authorized_keys \
+# Cross copy RSA public key
+    && cat /home/hduser/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys \
+    && cat /root/.ssh/id_rsa.pub >> /home/hduser/.ssh/authorized_keys \
+    && chown hduser /home/hduser/.ssh/authorized_keys \
+    && echo 'root:root' | chpasswd \
+    && echo 'hduser:hduser' | chpasswd \
+# SSHD config
+    && sed -i -r 's/.?PasswordAuthentication.+/PasswordAuthentication yes/' /etc/ssh/sshd_config \
+    && sed -i -r 's/.?ChallengeResponseAuthentication.+/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config \
+## no need because root not used
+    && sed -i -r 's/.?PermitRootLogin.+/PermitRootLogin yes/' /etc/ssh/sshd_config \
+    && echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config \
+# install hadoop
+    && wget -qO- http://apache.mirror.cdnetworks.com/hadoop/common/hadoop-$HADOOP_VERSION/hadoop-$HADOOP_VERSION.tar.gz | tar zxvf - -C /opt \
+    && ln -s /opt/hadoop-$HADOOP_VERSION /opt/hadoop \
+    && chmod +x $HADOOP_CONF_DIR/hadoop-env.sh \
+    && chmod +x $HADOOP_CONF_DIR/yarn-env.sh \
+    && mkdir -p /data \
+    && chown -R hduser:hdgroup /data /opt/hadoop-$HADOOP_VERSION /opt/hadoop 
+
+COPY run_sshd /etc/services.d/sshd/run
+
+WORKDIR $HADOOP_HOME
+
+VOLUME  /data
+
+# SSH port
+EXPOSE 22
+
+## HDFS ports 
+#EXPOSE 9000 50010 50020 50070 50075 50090 14000 
+#
+## MapReduce ports 
+#EXPOSE 19888 
+#
+## YARN ports 
+#EXPOSE 8030 8031 8032 8033 8040 8042 8088

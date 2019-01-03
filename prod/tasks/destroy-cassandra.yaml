@@ -1,0 +1,13 @@
+---
+# This will destroy Cassnadra cluster
+- name: stop and remove cassandra containers
+  shell: "{{ item }}"
+  with_items:
+    - docker stop {{ group_prefix }}-cassandra
+    - docker rm {{ group_prefix }}-cassandra
+
+- name: delete cassandra mount directory - {{ cassandra_mount_root }}/{{ group_prefix }}/cassandra
+  become: true
+  file: 
+    path: '{{ cassandra_mount_root }}/{{ group_prefix }}/cassandra'
+    state: absent

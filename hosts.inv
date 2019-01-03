@@ -1,0 +1,67 @@
+###################### Local vagrant vms ###################
+[cents]
+#cent-01 ansible_host=10.119.190.73
+#cent-02 ansible_host=10.119.190.74
+#cent-03 ansible_host=10.119.190.75
+cent-01 ansible_host=192.168.10.211
+cent-02 ansible_host=192.168.10.212
+cent-03 ansible_host=192.168.10.213
+#ecube57 ansible_host=192.168.10.57
+#ecube58 ansible_host=192.168.10.58
+#ecube59 ansible_host=192.168.10.59
+#cent-01 ansible_host=172.17.8.101
+#cent-02 ansible_host=172.17.8.102
+#cent-03 ansible_host=172.17.8.103
+
+[hds]
+ecube57 ansible_host=192.168.10.57
+ecube58 ansible_host=192.168.10.58
+ecube59 ansible_host=192.168.10.59
+
+[ambs]
+cent-82 ansible_host=192.168.10.82
+cent-83 ansible_host=192.168.10.83
+cent-84 ansible_host=192.168.10.84
+
+[elks]
+cent-82 ansible_host=192.168.10.82
+cent-83 ansible_host=192.168.10.83
+cent-84 ansible_host=192.168.10.84
+
+[cents:vars]
+#ansible_ssh_user=vagrant
+#ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+ansible_ssh_user=ecube
+ansible_ssh_private_key_file=~/.ssh/id_rsa
+#public_interface=ansible_eth0
+public_interface=ansible_enp0s17
+ansible_sudo_pass=ecube
+
+[hds:vars]
+ansible_ssh_user=ecube
+ansible_ssh_private_key_file=~/.ssh/id_rsa
+public_interface=ansible_eth0
+ansible_sudo_pass=ecube
+
+[ambs:vars]
+ansible_ssh_user=ecube
+ansible_ssh_private_key_file=~/.ssh/id_rsa
+public_interface=ansible_eno1
+ansible_sudo_pass=obzcom1!
+
+[elks:vars]
+ansible_ssh_user=ecube
+ansible_ssh_private_key_file=~/.ssh/id_rsa
+public_interface=ansible_eno1
+ansible_sudo_pass=obzcom1!
+
+#[cent-211:vars]
+#public_interface=ansible_enp0s17
+#
+#[cent-57:vars]
+#public_interface=ansible_eno1
+#ansible_sudo_pass=ecube
+#
+#[cent-58:vars]
+#public_interface=ansible_enp3s0
+#ansible_sudo_pass=ecube

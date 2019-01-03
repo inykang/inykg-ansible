@@ -1,0 +1,18 @@
+---
+
+gluster_ports:
+  # GlusterFS server communication
+  - { protocol: tcp, port: '24007:24008' }
+  # GlusterFS bricks communication
+  - { protocol: tcp, port: 24009 }
+  # For GlusterFS/NFS/CIFS clients
+  - { protocol: tcp, port: 111 }
+  - { protocol: udp, port: 111 }
+  - { protocol: tcp, port: 139 }
+  - { protocol: tcp, port: 445 }
+  - { protocol: tcp, port: 631 }
+  - { protocol: udp, port: 963 }
+  - { protocol: tcp, port: 965 }
+  - { protocol: tcp, port: 2049 }
+  - { protocol: tcp, port: '33465:38469' }
+  - { protocol: tcp, port: '49152:49252' }

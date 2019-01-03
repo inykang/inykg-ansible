@@ -1,0 +1,11 @@
+---
+
+cep_mount_root: /data
+cep_publish_5701: 5701
+cep_publish_5800: 5800
+cep_publish_8082: 8082
+cep_publish_9010: 9010
+# cassandra_9160
+# cassandra_9042
+# kafka_9092
+cep_image: prireg:5000/obzen-cep:3.2.0-snapshot

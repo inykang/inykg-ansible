@@ -1,0 +1,23 @@
+FROM prireg:5000/hadoop-base:2.7.4
+MAINTAINER Hun Jae Lee <hunjae.lee@gmail.com>
+
+COPY core-site.xml.node-manager $HADOOP_CONF_DIR/core-site.xml
+COPY yarn-site.xml.node-manager $HADOOP_CONF_DIR/yarn-site.xml
+COPY mapred-site.xml.node-manager $HADOOP_CONF_DIR/mapred-site.xml
+
+RUN chown hduser:hdgroup $HADOOP_CONF_DIR/core-site.xml
+RUN chown hduser:hdgroup $HADOOP_CONF_DIR/yarn-site.xml
+
+COPY run-node-manager /etc/services.d/node-manager/run
+
+
+## HDFS ports 
+#EXPOSE 9000 50010 50020 50070 50075 50090 14000 
+
+#
+## MapReduce ports 
+#EXPOSE 19888 
+
+## YARN ports 
+#EXPOSE 8030 8031 8032 8033 8040 8042 8088
+EXPOSE 8040 8042

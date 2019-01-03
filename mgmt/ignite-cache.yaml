@@ -1,0 +1,68 @@
+---
+
+- hosts: cents
+  any_errors_fatal: true
+  vars_files:
+    - vars/ignite.yaml
+  vars:
+    group_prefix: prod
+#    temp_path: "{{ ignite_mount_root }}/{{ group_prefix }}/ignite/temp/conf"
+    config_path: "{{ ignite_mount_root }}/{{ group_prefix }}/ignite/config"
+    config_file: "{{ config_path }}/{{ ignite_server_config }}"
+    ignt_regexp: 'import ignite configuration'
+    conf_regexp: 'import cache configuration'
+#    cacheName: 'ecube-custBaseInfoCache' //extra-vars
+
+  tasks:
+    - name: copy "{{ cacheName }}" configuration xml to each servers
+      copy:
+        src: '{{ temp_path }}/{{ cacheName }}.xml'
+        dest: '{{ config_path }}/{{ cacheName }}.xml'
+      tags: ['copy', 'create']
+
+    - name: add "{{ cacheName }}" to the ignite server configuration
+      lineinfile:
+        path: "{{ config_file }}"
+        insertafter: "{{ item.insafter }}"
+        line: "{{ item.line }}"
+        state: present
+      with_items:
+        - { insafter: "{{ ignt_regexp }}", line: '    <import resource="{{ cacheName }}.xml"/>' }
+        - { insafter: "{{ conf_regexp }}", line: '                <bean parent="{{ cacheName }}.cfg"/>' }
+      tags: ['add', 'create']
+
+    - name: delete "{{ cacheName }}" from the ignite server configuration 
+      lineinfile:
+        path: "{{ config_file }}"
+        regexp: '{{ cacheName }}'
+        state: absent
+      tags: ['delete']
+   
+    - name: remove "{{ cacheName }}" to the ignite server configuration
+      lineinfile:
+        path: "{{ config_file }}"
+        insertafter: "{{ item.insafter }}"
+        line: "{{ item.line }}"
+        state: absent
+      with_items:
+        - { insafter: "{{ ignt_regexp }}", line: '    <import resource="{{ cacheName }}.xml"/>' }
+        - { insafter: "{{ conf_regexp }}", line: '                <bean parent="{{ cacheName }}.cfg"/>' }
+      tags: ['delete', 'remove']
+
+    - name: find a persistent storage of "{{ cacheName }}"
+      find:
+        paths: /data/prod/ignite/work/db/
+        recurse: true
+        file_type: directory
+        patterns: "cache-{{ cacheName }}"
+        use_regex: true
+      register: storage_dir
+      tags: ['delete']
+
+    - name: delete a persistent storage of "{{ cacheName }}"
+      become: true
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      with_items: "{{ storage_dir.files }}"
+      tags: ['delete']

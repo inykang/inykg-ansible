@@ -1,0 +1,21 @@
+#!/usr/bin/with-contenv bash
+
+if [[ -z "${KAFKA_ID}" || -z "${ADVERTISED_HOST_NAME}" || -z "${ZK_CONNECT}" ]]; then
+	echo "Please set KAFKA_ID, ADVERTISED_HOST_NAME and ZK_CONNECT environment variables first."
+	exit 1
+fi
+
+export CONF_FILE=/opt/kafka/config/server-${KAFKA_ID}.properties
+export LOG4J_CONF_FILE=/opt/kafka/config/log4j.properties
+
+cp /opt/kafka/config/server.properties.template ${CONF_FILE}
+cp /opt/kafka/config/log4j.properties.template ${LOG4J_CONF_FILE}
+
+sed -i -e "s/%broker_id%/${KAFKA_ID}/g" ${CONF_FILE}
+sed -i -e "s/%advertised_host_name%/${ADVERTISED_HOST_NAME}/g" ${CONF_FILE}
+sed -i -e "s/%log_dirs%/\/data\/kafka/g" ${CONF_FILE}
+sed -i -e "s/%zookeeper_connect%/${ZK_CONNECT}/g" ${CONF_FILE}
+
+sed -i -e "s/%kafka_logs_dir%/\/data\/kafka/g" ${LOG4J_CONF_FILE}
+
+exec /opt/kafka/bin/kafka-server-start.sh ${CONF_FILE}

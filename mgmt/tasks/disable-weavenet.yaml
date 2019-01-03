@@ -1,0 +1,28 @@
+---
+- name: reset weave
+  command: weave reset
+
+## Check if firewall running
+## -> no need!
+#- name: check if iptables running
+#  become: true
+#  command: systemctl is-active iptables
+#  register: iptables_state
+#  ignore_errors: true
+#
+#- name: disable ports through firewall
+#  when: iptables_state.stdout == 'active'
+#  become: true
+#  iptables:
+#    chain: '{{ item.chain }}'
+#    protocol: '{{ item.protocol }}'
+#    destination_port: '{{ item.port }}'
+#    jump: ACCEPT
+#    state: absent
+#  with_items:
+#    - "{{ weavenet_ports }}"
+#
+#- name: save firewall rules
+#  when: iptables_state.stdout == 'active'
+#  become: true
+#  command: /sbin/service iptables save

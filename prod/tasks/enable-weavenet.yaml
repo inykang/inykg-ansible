@@ -1,0 +1,21 @@
+---
+- name: download weave
+  local_action: get_url url=http://git.io/weave dest=files/weave
+  run_once: true
+
+- name: copy weave to servers
+  become: true
+  copy:
+    src: files/weave
+    dest: /usr/local/bin/weave
+    mode: a+x
+
+- debug: msg={{ play_hosts | difference(ansible_hostname) | join(" ") }}
+
+- name: launch weave on the first machine
+  when: ansible_hostname == play_hosts[0]
+  command: weave launch --dns-domain="{{ weavenet_domain }}.local."
+
+- name: launch weave on the remaining machines
+  when: ansible_hostname != play_hosts[0]
+  command: weave launch --dns-domain="{{ weavenet_domain }}.local." {{ play_hosts | difference(ansible_hostname) | join(" ") }}

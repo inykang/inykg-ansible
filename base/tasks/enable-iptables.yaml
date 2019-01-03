@@ -1,0 +1,35 @@
+---
+
+  - name: disable firewalld service
+    become: true
+    service: 
+      name: firewalld 
+      enabled: no 
+      state: stopped
+    
+  - name: install iptables instead
+    become: true
+    yum:
+      name: iptables-services
+      state: present
+
+  - name: enable iptables service
+    become: true
+    service:
+      name: iptables
+      enabled: true
+      state: started
+
+  - name: delete reject-with icmp-host-prohibited rule
+    become: true
+    iptables:
+      chain: '{{ item }}'
+      reject_with: icmp-host-prohibited
+      state: absent
+    with_items:
+      - INPUT
+      - FORWARD
+
+  - name: save firewall rules
+    become: true
+    command: iptables-save

@@ -1,0 +1,11 @@
+---
+
+#swarm_init_host: cent-01
+swarm_ports:
+  # Swarm cluster managment
+  - { port: 2377, protocol: tcp }
+  - { port: 7946, protocol: tcp }
+  - { port: 7946, protocol: udp }
+  # Overlay network traffic
+  - { port: 4789, protocol: tcp }
+  - { port: 4789, protocol: udp }

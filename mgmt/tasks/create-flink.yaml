@@ -1,0 +1,30 @@
+---
+
+- name: ensure flink data directory - {{ flink_mount_root }}/{{ group_prefix }}/flink
+  become: true
+  file:
+    path: '{{ flink_mount_root }}/{{ group_prefix }}/flink'
+    state: directory
+
+- name: up flink master node - jobmanager
+  when: ansible_hostname == flink_master_host
+  shell: |
+    docker run -d --restart always \
+    --name {{ group_prefix }}-flink-jobmanager \
+    --label SERVICE_NAME={{ group_prefix }}-flink-jobmanager \
+    --network host \
+    -e "JOB_MANAGER_RPC_ADDRESS={{ hostvars[flink_master_host][public_interface]['ipv4']['address'] }}" \
+    -p {{ flink_port_8081 }}:8081 \
+    -p {{ flink_port_6123 }}:6123 \
+    {{ flink_image }} jobmanager
+
+- name: up remaining flink nodes - taskmanager
+  shell: |
+    docker run -d --restart always \
+    --name {{ group_prefix }}-flink-taskmanager \
+    --label SERVICE_NAME={{ group_prefix }}-flink-taskmanager \
+    --network host \
+    -e "JOB_MANAGER_RPC_ADDRESS={{ hostvars[flink_master_host][public_interface]['ipv4']['address'] }}" \
+    -p {{ flink_port_6121 }}:6121 \
+    -p {{ flink_port_6122 }}:6122 \
+    {{ flink_image }} taskmanager

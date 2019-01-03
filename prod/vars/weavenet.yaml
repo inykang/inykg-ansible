@@ -1,0 +1,10 @@
+---
+weavenet_domain: big.obzen
+weavenet_ports:
+#  - { chain: INPUT, port: 6783, protocol: tcp }
+#  - { chain: INPUT, port: 6783, protocol: udp }
+#  - { chain: INPUT, port: 6784, protocol: udp }
+#  - { chain: INPUT, port: 53, protocol: tcp}
+#  - { chain: INPUT, port: 53, protocol: udp}
+#  - { chain: FORWARD, port: 53, protocol: tcp}
+#  - { chain: FORWARD, port: 53, protocol: udp}

@@ -1,0 +1,7 @@
+---
+
+cassandra_mount_root: /data
+cassandra_publish_7000: 7000
+cassandra_publish_9042: 9042
+cassandra_publish_9160: 9160
+cassandra_image: prireg:5000/cassandra:2.1.15-auto

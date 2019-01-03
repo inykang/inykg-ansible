@@ -1,0 +1,5 @@
+---
+
+etcd_data_dir: /data/etcd
+etcd_peer_port: 2380
+etcd_client_port: 2379

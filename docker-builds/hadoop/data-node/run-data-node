@@ -1,0 +1,24 @@
+#!/usr/bin/with-contenv sh
+
+#check variables
+# NAME_NODE_HOST
+# NAME_NODE_FS_PORT
+if [ -z ${NAME_NODE_HOST+x} ]; then
+  echo environment varialbe NAME_NODE_HOST is unset. exiting...
+  exit 1
+fi
+if [ -z ${NAME_NODE_FS_PORT+x} ]; then
+  echo environment varialbe NAME_NODE_FS_PORT is unset. exiting...
+  exit 1
+fi
+if [ -z ${NAME_NODE_HTTP_PORT+x} ]; then
+  echo environment varialbe NAME_NODE_HTTP_PORT is unset. exiting...
+  exit 1
+fi
+# substitude configurations
+su-exec hduser sed -i "s/%fs.defaultFS.address%/${NAME_NODE_HOST}:${NAME_NODE_FS_PORT}/g" $HADOOP_CONF_DIR/core-site.xml
+su-exec hduser sed -i "s/%namenode.host%/${NAME_NODE_HOST}/g" $HADOOP_CONF_DIR/hdfs-site.xml
+su-exec hduser sed -i "s/%namenode.http.port%/${NAME_NODE_HTTP_PORT}/g" $HADOOP_CONF_DIR/hdfs-site.xml
+
+echo "starting datanode..." 
+exec su-exec hduser $HADOOP_PREFIX/bin/hdfs datanode

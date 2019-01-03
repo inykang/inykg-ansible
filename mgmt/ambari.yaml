@@ -1,0 +1,31 @@
+---
+
+- hosts: ambs
+  any_errors_fatal: true
+  vars_files:
+#    - vars/ambari.yaml
+  vars:
+    group_prefix: prod
+
+  tasks:
+    - name: start ambari-agent in {{ play_hosts }}
+      become: true
+      shell: 'ambari-agent start'
+      tags: ['start', 'start-agent']
+
+    - name: start ambari-server in {{ play_hosts[0] }}
+      when: ansible_hostname == play_hosts[0]
+      become: true
+      shell: 'ambari-server start'
+      tags: ['start', 'start-server']
+
+    - name: stop ambari-server in {{ play_hosts[0] }}
+      when: ansible_hostname == play_hosts[0]
+      become: true
+      shell: 'ambari-server stop'
+      tags: ['stop', 'stop-server']
+      
+    - name: stop ambari-agent in {{ play_hosts }}
+      become: true
+      shell: 'ambari-agent stop'
+      tags: ['stop', 'stop-agent']

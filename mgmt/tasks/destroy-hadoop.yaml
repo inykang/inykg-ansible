@@ -1,0 +1,41 @@
+---
+
+- name: stop hadoop data node & node manager containers
+  command: docker stop {{ item }}
+  with_items:
+    - "{{ group_prefix}}-hadoop-data-node-{{ play_hosts.index(ansible_hostname) }}"
+    - "{{ group_prefix}}-hadoop-node-manager-{{ play_hosts.index(ansible_hostname) }}"
+  ignore_errors: true
+
+- name: remove hadoop data node * node manager containers
+  command: docker rm {{ item }}
+  with_items:
+    - "{{ group_prefix}}-hadoop-data-node-{{ play_hosts.index(ansible_hostname) }}"
+    - "{{ group_prefix}}-hadoop-node-manager-{{ play_hosts.index(ansible_hostname) }}"
+  ignore_errors: true
+
+- name: stop hadoop name node, secondary name node, resource manager, history server container
+  when: inventory_hostname == master_node_host
+  command: docker stop {{ item }}
+  with_items:
+    - "{{ group_prefix }}-hadoop-yarn-timeline-server"
+    - "{{ group_prefix }}-hadoop-job-history-server"
+    - "{{ group_prefix }}-hadoop-resource-manager"
+    - "{{ group_prefix }}-hadoop-secondary-name-node"
+    - "{{ group_prefix }}-hadoop-name-node"
+  ignore_errors: true
+
+- name: remove hadoop name node, secondary name node, resource manager, history server container
+  when: inventory_hostname == master_node_host
+  command: docker rm {{ item }}
+  with_items:
+    - "{{ group_prefix }}-hadoop-yarn-timeline-server"
+    - "{{ group_prefix }}-hadoop-job-history-server"
+    - "{{ group_prefix }}-hadoop-resource-manager"
+    - "{{ group_prefix }}-hadoop-secondary-name-node"
+    - "{{ group_prefix }}-hadoop-name-node"
+  ignore_errors: true
+
+- name: delete hadoop data directory - {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop
+  become: true
+  file: path={{ hadoop_mount_root }}/{{ group_prefix }}/hadoop state=absent

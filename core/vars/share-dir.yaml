@@ -1,0 +1,6 @@
+---
+
+share_bricks_root_dir: /data
+share_bricks_prefix: brick-share
+share_volume_name: gvol-share
+share_mount_dir: /share

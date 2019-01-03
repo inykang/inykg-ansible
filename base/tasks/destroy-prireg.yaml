@@ -1,0 +1,10 @@
+---
+
+- name: destroy private registry service
+  when: inventory_hostname == play_hosts[0]
+  command: docker service rm {{ prireg_service_name }} 
+
+- name: destroy registry volume
+  when: inventory_hostname == play_hosts[0]
+  become: true
+  file: path={{ prireg_mount_root }}/prireg state=absent

@@ -1,0 +1,17 @@
+---
+# This is per host deployment
+- name: stop zookeeper docker
+  shell: "docker stop prod-zookeeper"
+
+- name: wait for zookeeper down
+  local_action: wait_for host={{ ansible_host }} port={{ zookeeper_publish_2181 }} state=absent delay=5 timeout=3000
+
+- name: change onwer of data directories to ecube
+  become: true
+  shell: "chown -R ecube:ecube /data/prod/zookeeper"
+
+- name: start zookeeper servers
+  shell: "/opt/zookeeper/bin/zkServer.sh start"
+
+- name: wait for zookeeper up
+  local_action: wait_for host={{ ansible_host }} port={{ zookeeper_publish_2181}} state=started delay=5 timeout=3000

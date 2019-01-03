@@ -1,0 +1,15 @@
+---
+
+- name: ensure existence of {{ prireg_mount_root }} 
+  when: inventory_hostname == "{{ play_hosts[0] }}"
+  become: true
+  file: path={{ prireg_mount_root }}/prireg state=directory
+
+- name: create private registry service
+  when: inventory_hostname == "{{ play_hosts[0] }}"
+  shell: |
+    docker service create \
+    --name {{ prireg_service_name }} \
+    -p {{ prireg_publish_5000 }}:5000 \
+    --mount type=bind,source={{ prireg_mount_root }}/prireg,target=/var/lib/registry \
+    {{ prireg_image }}

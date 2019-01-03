@@ -1,0 +1,5 @@
+---
+
+#meetup_endpoint: 'http://stream.meetup.com/2/open_venues?trickle'
+meetup_endpoint: 'http://stream.meetup.com/2/open_events'
+meetup_stream_image: prireg:5000/meetup-stream:0.9

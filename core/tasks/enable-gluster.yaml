@@ -1,0 +1,128 @@
+---
+
+- name: install gluster yum repository
+  become: true
+  yum:
+    name: centos-release-gluster
+    state: present
+#
+- name: install glusterfs-server
+  become: true
+  yum: 
+    name: glusterfs-server.x86_64
+    state: present
+
+- name: check if iptables is running
+  become: true
+  command: systemctl is-active iptables
+  register: iptables_state
+  ignore_errors: ture
+
+- name: configure iptables for gluster
+  when: iptables_state.stdout == "active"
+  become: true
+  iptables: 
+    action: insert
+    chain: INPUT
+    protocol: '{{ item.protocol }}'
+    destination_port: '{{ item.port }}'
+    jump: ACCEPT
+    state: present
+  with_items:
+    - "{{ gluster_ports }}"
+  any_errors_fatal: true
+
+- name: save firewall rules
+  become: true
+  command: iptables-save
+
+- name: enable and start glusterd service
+  become: true
+  # for docker version < 2.2
+  #  service: name=glusterd state=started enabled=yes
+  systemd:
+    name: glusterd
+    state: started
+    enabled: yes
+    daemon_reload: yes
+  any_errors_fatal: true
+
+- name: probe the second server on the first
+  when: ansible_hostname == play_hosts[0]
+  become: true
+  command: gluster peer probe play_hosts[1]
+
+- name: probe the first server on the second
+  when: ansible_hostname == play_hosts[1]
+  become: true
+  command: gluster peer probe play_hosts[0]
+
+- name: probe the remaining on the first server
+  when: ansible_hostname == play_hosts[0] and ( item != play_hosts[0] and item != play_hosts[1] )
+  become: true
+  command: gluster peer probe "{{ item }}"
+  with_items:
+    - "{{ play_hosts }}"
+
+# ensure gluster volumes mounted before docker started
+- name: make /etc/glusterfs/mount-volumes.sh
+  become: true
+  template: 
+    src: files/mount-volumes.sh.j2
+    dest: /etc/glusterfs/mount-volumes.sh
+    mode: 755
+    backup: yes
+
+- name: make an empty /etc/glusterfs/gfstab
+  become: true
+  copy: 
+    src: files/gfstab
+    dest: /etc/glusterfs/gfstab
+    mode: 644
+    backup: yes
+
+- name: make glusterfs_mounts.service
+  become: true
+  copy: 
+    src: files/glusterfs_mounts.service
+    dest: /etc/systemd/system/glusterfs_mounts.service
+    mode: 644
+    backup: yes
+
+- name: make docker to relay on glusterfs_mounts.service
+  become: true
+  lineinfile:
+    dest: /etc/systemd/system/docker.service.d/docker.conf
+    regexp: '{{ item.regexp }}'
+    line: '{{ item.line }}'
+  with_items:
+    - { regexp: "^Requires=docker.socket", line: "Requires=docker.socket glusterfs_mounts.service" }
+    - { regexp: "^After=network.target", line: "After=network.target docker.socket glusterfs_mounts.service" }
+
+- name: enable and restart glusterfs_mounts and docker services
+  become: true
+  systemd:
+    name: '{{ item }}'
+    state: restarted
+    daemon_reload: yes
+    enabled: yes
+  with_items:
+    - glusterfs_mounts
+    - docker
+
+# for docker version < 2.2
+#- name: enable and restart glsuterfs_mounts and docker services
+#  become: true
+#  command: "{{ item }}"
+#  with_items:
+#    - systemctl daemon-reload
+#    - systemctl enable glusterfs_mounts
+#    - systemctl restart glusterfs_mounts
+#    - systemctl restart docker
+#
+- name: display gluster peers
+  become: true
+  command: gluster peer status
+  register: peer_list
+#
+- debug: var=peer_list.stdout_lines

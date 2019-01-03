@@ -1,0 +1,26 @@
+---
+
+- hosts: cents
+  any_errors_fatal: true
+  tasks:
+#    - name: copy spark image to servers
+#      copy: 
+#        src: images/spark-2.2.0-bin-hadoop2.7.tgz
+#        dest: /home/ecube/images/spark-2.2.0-bin-hadoop2.7.tgz
+#    - name: extract image to /opt
+#      become: true
+#      shell: tar xzvf /home/ecube/images/spark-2.2.0-bin-hadoop2.7.tgz -C /opt
+    - name: extract image to /opt
+      become: true
+      unarchive:
+        src: images/spark-2.2.0-bin-hadoop2.7.tgz
+        dest: /opt
+    - name: create symbolic link
+      become: true
+      file:
+          src: /opt/spark-2.2.0-bin-hadoop2.7
+          dest: /opt/spark
+          state: link
+    - name: change owner to ecube
+      become: true
+      shell: chown -R ecube:ecube /opt/spark*

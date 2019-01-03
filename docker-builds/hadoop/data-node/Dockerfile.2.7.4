@@ -1,0 +1,22 @@
+FROM prireg:5000/hadoop-base:2.7.4
+MAINTAINER Hun Jae Lee <hunjae.lee@gmail.com>
+
+COPY core-site.xml.data-node $HADOOP_CONF_DIR/core-site.xml
+COPY hdfs-site.xml.data-node $HADOOP_CONF_DIR/hdfs-site.xml
+
+RUN chown hduser:hdgroup $HADOOP_CONF_DIR/core-site.xml
+RUN chown hduser:hdgroup $HADOOP_CONF_DIR/hdfs-site.xml
+
+COPY run-data-node /etc/services.d/data-node/run
+
+
+## HDFS ports 
+#EXPOSE 9000 50010 50020 50070 50075 50090 14000 
+EXPOSE 50010 50020 50075
+
+#
+## MapReduce ports 
+#EXPOSE 19888 
+
+## YARN ports 
+#EXPOSE 8030 8031 8032 8033 8040 8042 8088

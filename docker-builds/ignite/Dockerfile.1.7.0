@@ -1,0 +1,47 @@
+FROM prireg:5000/alpine-s6-jdk8:3.4-8u112
+MAINTAINER Kang, In Young <iny.kang@obzen.com>
+
+ENV IGNITE_VERSION=1.7.0 \
+    IGNITE_HOME=/opt/ignite
+
+RUN apk add --update --no-cache openssh procps libstdc++ \
+    && addgroup ecube && adduser -D -G ecube -s /bin/bash ecube \
+# Generate Host Keys for SSH
+    && ssh-keygen -A \
+# Generate RSA Key for ROOT
+    && ssh-keygen -q -N "" -t rsa -f /root/.ssh/id_rsa \
+    && cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys \
+# Generate RSA Key for ecube
+    && su-exec ecube ssh-keygen -q -N "" -t rsa -f /home/ecube/.ssh/id_rsa \
+    && su-exec ecube cat /home/ecube/.ssh/id_rsa.pub >> /home/ecube/.ssh/authorized_keys \
+# Cross copy RSA public key
+    && cat /home/ecube/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys \
+    && cat /root/.ssh/id_rsa.pub >> /home/ecube/.ssh/authorized_keys \
+    && chown ecube /home/ecube/.ssh/authorized_keys \
+    && echo 'root:root' | chpasswd \
+    && echo 'ecube:ecube' | chpasswd \
+# SSHD config
+    && sed -i -r 's/.?PasswordAuthentication.+/PasswordAuthentication yes/' /etc/ssh/sshd_config \
+    && sed -i -r 's/.?ChallengeResponseAuthentication.+/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config \
+## no need because root not used
+    && sed -i -r 's/.?PermitRootLogin.+/PermitRootLogin yes/' /etc/ssh/sshd_config \
+    && echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config \
+# install Apache Ignite
+    && wget http://mirror.apache-kr.org//ignite/$IGNITE_VERSION/apache-ignite-fabric-$IGNITE_VERSION-bin.zip \
+    && unzip apache-ignite-fabric-$IGNITE_VERSION-bin.zip -d /opt/ \
+    && rm apache-ignite-fabric-$IGNITE_VERSION-bin.zip \
+    && ln -s /opt/apache-ignite-fabric-$IGNITE_VERSION-bin /opt/ignite \
+    && mkdir -p /data \
+    && chown -R ecube:ecube /data /opt/apache-ignite-fabric-$IGNITE_VERSION-bin /opt/ignite 
+
+COPY run_sshd /etc/services.d/sshd/run
+
+WORKDIR $IGNITE_HOME
+
+VOLUME  /data
+
+# SSH port
+EXPOSE 22
+
+## Ignite ports 
+EXPOSE 49501 49502 49503 49101 8090

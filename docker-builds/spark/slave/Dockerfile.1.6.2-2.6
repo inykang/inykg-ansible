@@ -1,0 +1,7 @@
+FROM prireg:5000/spark-base:1.6.2-2.6
+
+MAINTAINER Hun Jae Lee <hunjae.lee@gmail.com>
+
+COPY run-spark-slave /etc/services.d/spark-slave/run
+
+EXPOSE 8081 40201

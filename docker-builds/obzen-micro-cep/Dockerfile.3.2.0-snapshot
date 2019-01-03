@@ -1,0 +1,18 @@
+FROM prireg:5000/alpine-s6-jdk8:3.4-8u112
+MAINTAINER Hun Jae Lee <hunjae.lee@gmail.com>
+
+ENV OCEP_VERSION 3.2.0-SNAPSHOT
+ENV JAR cep-microservice-3.2.0-SNAPSHOT-all.jar
+
+RUN mkdir /micro-cep \
+    && mkdir /conf
+
+COPY $JAR /micro-cep/
+COPY kafka-topic-producer.properties /micro-cep/
+COPY kafka-simpler-consumer.properties /micro-cep/
+
+COPY run-obzen-micro-cep /etc/services.d/obzen-micro-cep/run
+COPY finish /etc/services.d/obzen-micro-cep/finish
+
+
+VOLUME /conf

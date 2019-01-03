@@ -1,0 +1,53 @@
+---
+
+- name: ensure elk directory exists in the share directory
+  when: ansible_hostname == play_hosts[0]
+  become: true
+  file:
+    path: '{{ elk_mount_root }}/elk'
+    state: directory
+
+- name: move logstash.conf to a virtual machine
+  when: ansible_hostname == play_hosts[0]
+  become: true
+  template:
+    src: ./files/logstash.conf.j2
+    dest: '{{ elk_mount_root }}/elk/logstash.conf'
+    backup: yes
+
+- name: create elk network (overlay)
+  when: ansible_hostname == play_hosts[0]
+  command: docker network create --driver overlay {{ group_prefix}}-{{ elk_overlay_name }}
+  any_errors_fatal: true
+
+- name: create elk services
+  when: ansible_hostname == play_hosts[0]
+  # this should be 'shell' not 'command', because of the logstach argument
+  shell: "{{ item }}"
+  with_items:
+    - docker service create --network {{ group_prefix}}-{{ elk_overlay_name }} --publish {{ elk_publish_9200 }}:9200 --name {{ group_prefix}}-elasticsearch {{ elasticsearch_image }}
+    - docker service create --network {{ group_prefix}}-{{ elk_overlay_name }} --publish {{ elk_publish_5601 }}:5601 -e ELASTICSEARCH_URL=http://{{ group_prefix }}-elasticsearch:9200 --name {{ group_prefix}}-kibana {{ kibana_image }}
+    # The last -e is not docker environment variable, but argument for logstash
+    - docker service create --network {{ group_prefix}}-{{ elk_overlay_name }} --publish {{ elk_publish_12201 }}:12201/udp --name {{ group_prefix }}-logstash {{ logstash_image }} -e "$(cat {{ elk_mount_root }}/elk/logstash.conf)"
+  any_errors_fatal: true
+
+- name: wait for kibana up
+  local_action: wait_for host={{ play_hosts | random }} port={{ elk_publish_5601 }} state=started delay=5 timeout=3000
+
+- name: print elasticsearch status
+  command: docker service ps {{ group_prefix}}-elasticsearch
+  register: es_status
+
+- debug: var=es_status.stdout_lines
+
+- name: print logstash status
+  command: docker service ps {{ group_prefix}}-logstash
+  register: logstash_status
+
+- debug: var=logstash_status.stdout_lines
+
+- name: print kibana status
+  command: docker service ps {{ group_prefix}}-kibana
+  register: kibana_status
+
+- debug: var=kibana_status.stdout_lines

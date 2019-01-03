@@ -1,0 +1,7 @@
+---
+
+zookeeper_mount_root: /data
+zookeeper_publish_2181: 2181
+zookeeper_publish_2888: 2888
+zookeeper_publish_3888: 3888
+zookeeper_image: prireg:5000/zookeeper:3.4.10

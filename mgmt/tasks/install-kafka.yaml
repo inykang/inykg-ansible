@@ -1,0 +1,80 @@
+---
+# This is per host deployment
+- name: ensure kafka mount directory - {{ kafka_mount_root }}/{{ group_prefix }}/kafka
+  become: true
+  file: 
+    path: '{{ kafka_mount_root }}/{{ group_prefix }}/kafka'
+    state: directory
+    owner: '{{ kafka_user }}'
+    group: '{{ kafka_group }}'
+
+- name: extract Kafka image to /opt
+  become: true
+  unarchive:
+    src: images/kafka_{{ scala_binary_version }}-{{ kafka_version }}.tgz
+    dest: /opt
+    owner: "{{ kafka_user }}"
+    group: "{{ kafka_group }}"
+
+- name: create symbolic link
+  become: true
+  file:
+    src: /opt/kafka_{{ scala_binary_version }}-{{ kafka_version }}
+    dest: /opt/kafka
+    owner: "{{ kafka_user }}"
+    group: "{{ kafka_group }}"
+    state: link
+
+- name: retrieves IP addresses of play_hosts
+  debug: msg="{{ hostvars[item][public_interface]['ipv4']['address']}}:{{ zookeeper_publish_2181 }}"
+  with_items:
+    - '{{ play_hosts }}'
+  register: ip_addresses
+
+- name: make ZK_CONNECT environment variable value
+  debug: msg="{{ ip_addresses.results | map(attribute='msg') | join(',') }}"
+  register: zk_connect
+
+- name: make KAFKA_ID environment variable value
+  debug: msg="{{ play_hosts.index(inventory_hostname) + 1 }}"
+  register: kafka_id
+
+- name: copy log4j, kafka properties
+  copy:
+    src: "{{ playbook_dir }}/files/{{ item.src }}"
+    dest: "/opt/kafka/config/{{ item.dest }}"
+  with_items:
+    - { src: 'server.properties.template', dest: 'server.properties'}
+    - { src: 'log4j.properties.template', dest: 'log4j.properties'}
+
+- name: set kafka parameters per host
+  lineinfile:
+    path: "/opt/kafka/config/server.properties"  
+    state: present
+    regexp: '{{ item.regex }}'
+    line: '{{ item.repl }}'
+  with_items:
+    - { regex: '%broker_id%', repl: 'broker.id={{ kafka_id.msg }}'}
+    - { regex: '%advertised_host_name%', repl: 'advertised.host.name={{ ansible_host }}'}
+    - { regex: '%log_dirs%', repl: 'log.dirs={{ kafka_mount_root }}/{{ group_prefix }}/kafka'}
+    - { regex: '%zookeeper_connect%', repl: 'zookeeper.connect={{ zk_connect.msg }}'}
+
+- name: set log directory to log4j.properties
+  lineinfile:
+    path: "/opt/kafka/config/log4j.properties"
+    state: present
+    regexp: '%kafka_logs_dir%'
+    line: 'kafka.logs.dir={{ kafka_mount_root }}/{{ group_prefix }}/kafka'
+
+- name: change kafka-server-stop.sh (bug fix)
+  lineinfile:
+    path: "/opt/kafka/bin/kafka-server-stop.sh"
+    state: present
+    regexp: '^PIDS'
+    line: "PIDS=$(/usr/bin/jps -vl | grep Kafka | grep -v grep | awk \'{print $1}\')"
+
+#- name: start kafka servers
+#  shell: "/opt/kafka/bin/kafka-server-start.sh -daemon /opt/kafka/config/server-{{ kafka_id.msg }}.properties"
+
+#- name: wait for kafka up
+#  local_action: wait_for host={{ ansible_host }} port={{ kafka_publish_9092 }} state=started delay=5 timeout=3000

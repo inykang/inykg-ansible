@@ -1,0 +1,10 @@
+---
+- hosts: cents
+  remote_user: ecube
+  order: sorted
+  tasks:
+      - name: "ps -ef | grep java"
+        shell: ps -ef | grep java
+        register: results
+
+      - debug: var=results.stdout_lines

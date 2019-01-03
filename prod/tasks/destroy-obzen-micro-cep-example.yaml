@@ -1,0 +1,14 @@
+---
+# this is just an example
+- name: remove the example micro cep service
+  when: inventory_hostname == "{{ micro_cep_swarm_manager_host }}"
+  command: docker service rm {{ group_prefix }}-mcep-example
+# 
+- name: remove an example json file to {{ micro_cep_mount_root }}/{{ group_prefix }}/micro-cep-conf/
+  when: inventory_hostname == "{{ micro_cep_glusterfs_host }}"
+  become: true
+  file:
+    path: '{{ micro_cep_mount_root }}/{{ group_prefix }}/{{ micro_cep_conf_dir_name }}/{{ item }}'
+    state: absent
+  with_items:
+    - example.json

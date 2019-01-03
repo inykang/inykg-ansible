@@ -1,0 +1,14 @@
+FROM prireg:5000/hadoop-base:2.7.4
+MAINTAINER Hun Jae Lee <hunjae.lee@gmail.com>
+
+COPY core-site.xml.resource-manager $HADOOP_CONF_DIR/core-site.xml
+COPY yarn-site.xml.resource-manager $HADOOP_CONF_DIR/yarn-site.xml
+
+RUN chown hduser:hdgroup $HADOOP_CONF_DIR/core-site.xml
+RUN chown hduser:hdgroup $HADOOP_CONF_DIR/yarn-site.xml
+
+COPY run-resource-manager /etc/services.d/resource-manager/run
+
+
+## YARN resource manager ports 
+EXPOSE 8030 8031 8032 8033 8088

@@ -1,0 +1,57 @@
+---
+- name: if it exist, remove old symbolic link
+  become: true
+  file:
+    path: /opt/kibana
+    state: absent
+  tags: ['kibana']
+
+- name: extract image to /opt
+  become: true
+  unarchive:
+    src: images/kibana-{{ kibana_version }}-linux-x86_64.tar.gz
+    owner: ecube
+    group: ecube
+    dest: /opt
+  tags: ['kibana']
+    
+- name: create symbolic link
+  become: true
+  file:
+    src: /opt/kibana-{{ kibana_version }}-linux-x86_64
+    dest: /opt/kibana
+    owner: ecube
+    group: ecube
+    state: link
+  tags: ['kibana']
+
+- name: make data,log directories
+  become: true
+  file:
+    path: "{{ item }}"
+    owner: ecube
+    group: ecube
+    state: directory
+  with_items:
+    - /data/kibana
+    - /data/logs/elk
+  tags: ['kibana']
+
+- name: copy config files
+  copy: 
+    src: files/elk/{{ item }}
+    dest: /opt/kibana/config/{{ item }}
+    mode: 0755
+  with_items:
+    - kibana.yml
+  tags: ['kibana']
+  
+- name: copy start scripts
+  copy: 
+    src: files/elk/{{ item }}
+    dest: /opt/kibana/{{ item }}
+    mode: 0755
+  with_items:
+    - kibana.sh
+  tags: ['kibana']
+

@@ -1,0 +1,92 @@
+---
+  - name: ensure /etc/yum.repos.d
+    become: true
+    file: 
+      path: /etc/yum.repos.d
+      state: directory
+
+  - name: add docker.repo
+    become: true
+    copy: 
+      src: ./files/docker-ce.repo 
+      dest: /etc/yum.repos.d/docker-ce.repo
+      backup: yes
+
+  - name: install docker-ce
+    become: true
+    yum: 
+      name: docker-ce
+      state: present
+
+  - name: add a user({{ ansible_ssh_user }}) to the docker group
+    become: true
+    user: 
+      name: '{{ ansible_ssh_user }}'
+      groups: docker
+      append: yes
+#
+  - name: kill ssh connections to completely logout
+    become: true
+    shell: sleep 1; pkill -U {{ ansible_ssh_user }} sshd
+    async: 3
+    poll: 2
+
+# Workaround to fix missing docker.socket when YUM used.
+  - name: copy docker.socket into /usr/lib/systemd/system/docker.socket
+    become: true
+    copy:
+      src: ./files/docker.socket 
+      dest: /usr/lib/systemd/system/docker.socket
+      backup: yes
+
+# Include the workaround to fix missing docker.socket and custom configurations
+  - name: create /etc/systemd/system/docker.service.d directory
+    become: true
+    file:
+      path: /etc/systemd/system/docker.service.d
+      state: directory
+
+  - name: copy docker.conf to /etc/systemd/system/docker.service.d
+    become: true
+    copy: 
+      src: ./files/docker.conf
+      dest: /etc/systemd/system/docker.service.d/docker.conf
+      backup: yes
+
+# Check if firewall running
+#  - name: check if iptables running
+#    become: true
+#    command: systemctl is-active iptables
+#    register: iptables_state
+#    ignore_errors: true
+
+#Use if firewalld is enabled
+#  - name: open port {{ docker_remote_port }} for Docker Remote API
+#    when: iptables_state.stdout == "active"
+#    become: true
+#    iptables:
+#      action: insert
+#      chain: INPUT
+#      protocol: '{{ docker_remote_port.protocol }}'
+#      destination_port: '{{ docker_remote_port.port }}'
+#      jump: ACCEPT
+#      state: present
+#    any_errors_fatal: true
+    
+#  - name: save iptables rules
+#    when: iptables_state.stdout == "active"
+#    become: true
+#    command: iptables-save
+
+#
+  - name: reload systemd and restart docker
+    become: true
+    shell: systemctl {{ item }}
+    with_items:
+      - daemon-reload
+      - enable docker
+      - restart docker
+#
+  - name: wait for docker service up
+    local_action: wait_for host={{ ansible_host }} port={{ docker_remote_port.port }} state=started delay=5 timeout=300
+    any_errors_fatal: true

@@ -1,0 +1,99 @@
+---
+
+# Create a highly available replicated volume/GlusterFS
+
+- name: find {{ share_bricks_root_dir }}
+  stat: 
+    path: '{{ share_bricks_root_dir }}'
+  register: data_dir
+
+- name: check if {{ share_bricks_root_dir }} exists
+  when: data_dir.stat.isdir is not defined or data_dir.stat.isdir != true
+  fail: 
+    msg: "Mount directory - {{ share_bricks_root_dir }} is absent"
+  any_errors_fatal: true
+
+- name: ensure a hidden mount point exists ({{ share_bricks_root_dir }}/.bricks/{{ share_bricks_prefix }}-index)
+  become: true
+  file:
+    path: '{{ share_bricks_root_dir }}/.bricks/{{ share_bricks_prefix }}-{{ play_hosts.index(ansible_hostname) }}'
+    state: directory
+    mode: 755
+
+- name: make brick strings
+  when: ansible_hostname == play_hosts[0]
+  debug: 
+    msg: "{{ item + ':' + share_bricks_root_dir + '/.bricks/' + share_bricks_prefix + '-' + play_hosts.index(item)|string }}"
+  register: brick_strings
+  with_items:
+    - "{{ play_hosts }}"
+
+- name: make brick list
+  when: ansible_hostname == play_hosts[0]
+  debug: 
+    msg: "{{ brick_strings.results | map(attribute='msg') | join(' ') }}"
+  register: brick_list
+  
+- name: create a glusterfs volume - {{ share_volume_name }}
+  when: ansible_hostname == play_hosts[0]
+  become: true
+  # 'force' needed when a volume is created on the root file system
+  command: gluster volume create {{ share_volume_name }} replica 3 transport tcp {{ brick_list.msg }} force
+  any_errors_fatal: true
+
+- name: start volume {{ share_volume_name }}
+  when: ansible_hostname == play_hosts[0]
+  become: true
+  shell: gluster volume start {{ share_volume_name }}
+  any_errors_fatal: true
+
+- name: make a mount point({{ share_mount_dir}}) for shared volume {{ share_mount_dir }}
+  become: true
+  file: 
+    path: '{{ share_mount_dir }}'
+    state: directory
+    mode: 755
+ 
+- name: add mount point to /etc/glusterfs/gfstab
+  become: true
+  lineinfile: 
+    dest: /etc/glusterfs/gfstab
+    regexp: '{{ share_mount_dir | regex_replace("\/", "\/")}}'
+    line: '{{ ansible_hostname }}:/{{ share_volume_name }} {{ share_mount_dir }}'
+  any_errors_fatal: true
+
+- name: restart glusterfs_mounts.service
+  become: true
+  service:
+    name: glusterfs_mounts.service
+    state: restarted
+
+- name: restart docker.service
+  become: true
+  service:
+    name: docker.service
+    state: restarted
+
+- name: print volume info
+  when: ansible_hostname == play_hosts[0]
+  become: true
+  command: gluster volume info {{ share_volume_name }}
+  register: volume_info
+
+- debug: var=volume_info.stdout_lines
+  when: ansible_hostname == play_hosts[0]
+
+- name: print volume status
+  when: ansible_hostname == play_hosts[0]
+  become: true
+  command: gluster volume status {{ share_volume_name }}
+  register: volume_status
+
+- debug: var=volume_status.stdout_lines
+  when: ansible_hostname == play_hosts[0]
+
+- name: print df result
+  command: df
+  register: df_out
+
+- debug: var=df_out.stdout_lines

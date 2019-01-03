@@ -1,0 +1,34 @@
+---
+ 
+#
+#- name: stop and remove the spark cmd container
+#  when: ansible_hostname == "{{ spark_master_host }}"
+#  command: docker {{ item }} {{ group_prefix }}-spark-cmd
+#  with_items:
+#    - stop
+#    - rm
+#
+- name: stop and remove spark slave node containers
+  command: docker {{ item }} {{ group_prefix }}-spark-slave-{{ play_hosts.index(ansible_hostname) }}
+  with_items:
+    - stop
+    - rm
+#
+- name: stop and remove spark master node container
+  when: ansible_hostname == "{{ spark_master_host }}"
+  command: docker {{ item }} {{ group_prefix }}-spark-master
+  with_items:
+    - stop
+    - rm
+#
+- name: delete spark data directory - {{ spark_mount_root }}/{{ group_prefix }}/spark
+  become: true
+  file:
+    path: '{{ spark_mount_root }}/{{ group_prefix }}/spark'
+    state: absent 
+#
+- name: delete spark ext directory - {{ spark_mount_root }}/{{ group_prefix }}/spark-ext
+  become: true
+  file:
+    path: '{{ spark_mount_root }}/{{ group_prefix }}/spark-ext'
+    state: absent 

@@ -1,0 +1,35 @@
+---
+# This is per host deployment
+- name: stop kafka docker
+  shell: "docker stop prod-kafka"
+
+- name: wait for kafka down
+  local_action: wait_for host={{ ansible_host }} port={{ kafka_publish_9092 }} state=absent delay=5 timeout=3000
+
+- name: remove kafka data directory - {{ kafka_mount_root }}/{{ group_prefix }}/kafka
+  become: true
+  file: 
+    path: '{{ kafka_mount_root }}/{{ group_prefix }}/kafka'
+    state: absent
+
+- name: ensure kafka data directory - {{ kafka_mount_root }}/{{ group_prefix }}/kafka
+  become: true
+  file: 
+    path: '{{ kafka_mount_root }}/{{ group_prefix }}/kafka'
+    state: directory
+    owner: '{{ kafka_user }}'
+    group: '{{ kafka_group }}'
+
+#- name: change onwer of data directories to ecube
+#  become: true
+#  shell: "chown -R ecube:ecube /data/prod/kafka"
+
+#- name: make KAFKA_ID environment variable value
+#  debug: msg="{{ play_hosts.index(inventory_hostname) + 1 }}"
+#  register: kafka_id
+
+- name: start kafka servers
+  shell: "/opt/kafka/bin/kafka-server-start.sh -daemon /opt/kafka/config/server.properties"
+
+- name: wait for kafka up
+  local_action: wait_for host={{ ansible_host }} port={{ kafka_publish_9092}} state=started delay=5 timeout=3000

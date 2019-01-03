@@ -1,0 +1,14 @@
+---
+
+- name: ensure ntp service disabled and stopped
+  become: true
+  service: 
+    name: ntpd
+    state: stopped
+    enabled: no
+
+- name: ensure ntp uninstalled
+  become: true
+  yum: 
+    name: ntp,ntpdate,ntp-doc
+    state: absent

@@ -1,0 +1,21 @@
+---
+
+- hosts: elks
+  any_errors_fatal: true
+#  gather_facts: no
+  vars:
+    group_prefix: prod
+    use_log_driver: false
+    public_interface: ansible_eno1
+  tasks:
+    - name: gethering hostnames
+      debug: msg="{{ hostvars[item][public_interface]['ipv4']['address']}}:8092"
+      with_items:
+          - '{{ play_hosts }}'
+      register: ip_addresses
+
+    - name: show ip_addresses
+      debug: msg={{ ip_addresses.results | map(attribute='msg') | list | join('\",\"') | quote }}
+      
+    - name: show ip_addresses
+      debug: msg={{ play_hosts | join(",") }}

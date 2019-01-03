@@ -1,0 +1,17 @@
+---
+- name: extract image to /opt
+  become: true
+  unarchive:
+    src: images/spark-2.2.0-bin-hadoop2.7.tgz
+    dest: /opt
+
+- name: create symbolic link
+  become: true
+  file:
+      src: /opt/spark-2.2.0-bin-hadoop2.7
+      dest: /opt/spark
+      state: link
+
+- name: change owner to ecube
+  become: true
+  shell: chown -R ecube:ecube /opt/spark*

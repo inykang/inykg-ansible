@@ -1,0 +1,98 @@
+---
+# This is per host deployment
+- name: ensure zookeeper mount directories - {{ zookeeper_mount_root }}/{{ group_prefix }}/zookeeper/{data, datalog}
+  become: true
+  file:
+    path: '{{ zookeeper_mount_root }}/{{ group_prefix }}/zookeeper/{{ item }}'
+    state: directory
+    owner: "{{ zookeeper_user }}"
+    group: "{{ zookeeper_group }}"
+  with_items:
+    - data
+    - datalog
+
+- name: extract image to /opt
+  become: true
+  unarchive:
+    src: images/zookeeper-{{ zookeeper_version }}.tar.gz
+    dest: /opt
+    owner: "{{ zookeeper_user }}"
+    group: "{{ zookeeper_group }}"
+    
+- name: create symbolic link
+  become: true
+  file:
+    src: /opt/zookeeper-{{ zookeeper_version }}  
+    dest: /opt/zookeeper
+    owner: "{{ zookeeper_user }}"
+    group: "{{ zookeeper_group }}"
+    state: link
+
+#- name: change owner to ecube
+#  become: true
+#  shell: "chown -R {{ zookeeper_user }}:{{ zookeeper_group }} /opt/zookeeper*"
+
+# Make zookeeper member list
+- name: find my ZOO ID
+  shell: echo "{{ item }}"
+  when: ansible_hostname == play_hosts[item|int -1] 
+  with_sequence: count={{ play_hosts | length }}
+  register: my_id_map
+
+- name: set my ZOO ID
+  debug:
+    msg: "{{ my_id_map.results | selectattr('stdout', 'defined') | map(attribute='stdout') | join('') }}"
+  register: my_id
+
+- name: retrieve IP addresses of hosts
+  shell: echo "server.{{ item }}:{{ hostvars[play_hosts[item|int - 1]][public_interface]['ipv4']['address']}}:{{ zookeeper_publish_2888 }}:{{ zookeeper_publish_3888 }}"
+  with_sequence: count={{ play_hosts | length }}
+  register: zoo_servers_list
+
+- name: make ZOO servers string
+  debug:
+    msg: "{{ zoo_servers_list.results | map(attribute='stdout') | join(' ') }}"
+  register: zoo_servers_string
+
+# Example string: "server.1=0.0.0.0:2888:3888 server.2=172.17.8.102:2888:3888 server.3=172.17.8.103:2888:3888"
+- name: change ZOO servers string (my IP to 0.0.0.0)
+  debug:
+    msg: "{{ zoo_servers_string['msg'] | regex_replace(hostvars[ansible_hostname][public_interface]['ipv4']['address'], '0.0.0.0') }}"
+  register: zoo_servers
+
+- name: if the old config exist, delete it
+  file:
+    path: /opt/zookeeper/conf/zoo.cfg
+    state: absent
+
+- name: Generate the config
+  lineinfile:
+    path: /opt/zookeeper/conf/zoo.cfg
+    create: true
+    line: "{{ item }}"
+  with_items:
+    - "clientPort={{ zookeeper_port }}"
+    - "dataDir={{ zookeeper_mount_root }}/{{ group_prefix }}/zookeeper/data"
+    - "dataLogDir={{ zookeeper_mount_root }}/{{ group_prefix }}/zookeeper/datalog"
+    - "tickTime={{ zookeeper_tick_time }}"
+    - "initLimit={{ zookeeper_init_limit }}"
+    - "syncLimit={{ zookeeper_sync_limit }}"  
+    - "{{ zoo_servers.msg.split(' ') | list }}"
+
+#- name: if the old id file exist, delete it
+#  file:
+#    path: "{{ zookeeper_mount_root }}/{{ group_prefix }}/zookeeper/data/myid"
+#    state: absent
+
+
+#- name: generate id file
+#  lineinfile:
+#    path: "{{ zookeeper_mount_root }}/{{ group_prefix }}/zookeeper/data/myid"
+#    create: true
+#    line: "{{ my_id.msg }}"
+
+#- name: start zookeeper servers
+#  shell: "/opt/zookeeper/bin/zkServer.sh start"
+
+#- name: wait for zookeeper up
+#  local_action: wait_for host={{ ansible_host }} port={{ zookeeper_publish_2181}} state=started delay=5 timeout=3000

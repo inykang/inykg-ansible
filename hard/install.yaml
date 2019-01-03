@@ -1,0 +1,39 @@
+---
+
+#- hosts: cents
+- hosts: elks
+  any_errors_fatal: true
+  vars:
+    group_prefix: prod
+    use_log_driver: false
+#    public_interface: ansible_enp0s17
+  vars_files:
+    - vars/zookeeper.yaml
+    - vars/kafka.yaml
+    - vars/spark.yaml
+    - vars/ignite.yaml
+    - vars/elk.yaml
+  tasks:
+    - import_tasks: tasks/install-zookeeper.yaml
+      tags: ['zookeeper']
+
+# depends on zookeeper
+    - import_tasks: tasks/install-kafka.yaml
+      tags: ['kafka']
+
+# depends on zookeeper
+#    - import_tasks: tasks/install-hadoop.yaml
+#      tags: ['hadoop']
+
+# depends on zookeeper
+#    - import_tasks: tasks/install-spark.yaml
+#      tags: ['spark']
+
+    - import_tasks: tasks/install-ignite.yaml
+      tags: ['ignite']
+      
+    - import_tasks: tasks/install-elasticsearch.yaml
+      tags: ['elk']
+
+    - import_tasks: tasks/install-kibana.yaml
+      tags: ['elk']

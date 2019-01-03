@@ -1,0 +1,36 @@
+---
+
+- name: ensure ignite data directory - {{ ignite_mount_root }}/{{ group_prefix }}/ignite
+  become: true
+  file:
+    path: '{{ ignite_mount_root }}/{{ group_prefix }}/ignite'
+    state: directory
+    owner: 1000
+    group: 1000
+
+#- name: up ignite master node
+#  when: ansible_hostname == ignite_master_host
+#  shell: |
+#    docker run -d --restart always \
+#    --name {{ group_prefix }}-ignite \
+#    --label SERVICE_NAME={{ group_prefix }}-ignite \
+#    --network host \
+#    -p {{ ignite_port_11211 }}:11211 \
+#    -p {{ ignite_port_47100 }}:47100 \
+#    -p {{ ignite_port_47500 }}:47500 \
+#    -p {{ ignite_port_49112 }}:49112 \
+#    {{ ignite_image }}
+
+- name: up remaining ignite nodes
+#  when: ansible_hostname != ignite_master_host
+  shell: |
+    docker run -d --restart always \
+    --name {{ group_prefix }}-ignite \
+    --label SERVICE_NAME={{ group_prefix }}-ignite \
+    --network host \
+    -e "SEED_HOSTS=<value>{{ hostvars[ignite_master_host][public_interface]['ipv4']['address'] }}:{{ ignite_port_47500 }}<\/value>" \
+    -p {{ ignite_port_11211 }}:11211 \
+    -p {{ ignite_port_47100 }}:47100 \
+    -p {{ ignite_port_47500 }}:47500 \
+    -p {{ ignite_port_49112 }}:49112 \
+    {{ ignite_image }}

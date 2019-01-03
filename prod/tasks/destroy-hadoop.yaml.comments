@@ -1,0 +1,94 @@
+---
+
+- name: stop hadoop data node & node manager containers
+  command: docker stop {{ item }}
+  with_items:
+    - "{{ group_prefix}}-hadoop-data-node-{{ play_hosts.index(ansible_hostname) }}"
+    - "{{ group_prefix}}-hadoop-node-manager-{{ play_hosts.index(ansible_hostname) }}"
+#    - hadoop-data-node
+#    - hadoop-node-manager
+  ignore_errors: true
+
+- name: remove hadoop data node * node manager containers
+  command: docker rm {{ item }}
+  with_items:
+    - "{{ group_prefix}}-hadoop-data-node-{{ play_hosts.index(ansible_hostname) }}"
+    - "{{ group_prefix}}-hadoop-node-manager-{{ play_hosts.index(ansible_hostname) }}"
+#    - hadoop-data-node
+#    - hadoop-node-manager
+  ignore_errors: true
+
+- name: stop hadoop name node, secondary name node, resource manager, history server container
+  when: inventory_hostname == "{{ master_node_host }}"
+#  command: docker stop {{ group_prefix + "-" + item }}
+  command: docker stop {{ item }}
+  with_items:
+    - "{{ group_prefix }}-hadoop-yarn-timeline-server"
+    - "{{ group_prefix }}-hadoop-job-history-server"
+    - "{{ group_prefix }}-hadoop-resource-manager"
+    - "{{ group_prefix }}-hadoop-secondary-name-node"
+    - "{{ group_prefix }}-hadoop-name-node"
+#    - hadoop-job-history-server
+#    - hadoop-resource-manager
+#    - hadoop-secondary-name-node
+#    - hadoop-name-node
+  ignore_errors: true
+
+- name: remove hadoop name node, secondary name node, resource manager, history server container
+  when: inventory_hostname == "{{ master_node_host }}"
+#  command: docker rm {{ group_prefix + "-" + item }}
+  command: docker rm {{ item }}
+  with_items:
+    - "{{ group_prefix }}-hadoop-yarn-timeline-server"
+    - "{{ group_prefix }}-hadoop-job-history-server"
+    - "{{ group_prefix }}-hadoop-resource-manager"
+    - "{{ group_prefix }}-hadoop-secondary-name-node"
+    - "{{ group_prefix }}-hadoop-name-node"
+#    - hadoop-job-history-server
+#    - hadoop-resource-manager
+#    - hadoop-secondary-name-node
+#    - hadoop-name-node
+  ignore_errors: true
+
+#- name: check if firewall is running
+#  become: true
+#  command: firewall-cmd --state
+#  register: firewall_state
+#  ignore_errors: true
+#
+#- name: modify firewall for hadoop communications on the master node
+#  when: firewall_state.stdout == "running" and inventory_hostname == "{{ master_node_host }}"
+#  become: true
+#  command: firewall-cmd --zone=public --remove-port={{ item }}/tcp --permanent
+#  with_items:
+#    - "{{ hadoop_publish_8020 }}"
+#    - "{{ hadoop_publish_50070 }}"
+#    - "{{ hadoop_publish_50090 }}"
+#    - "{{ hadoop_publish_8030 }}"
+#    - "{{ hadoop_publish_8031 }}"
+#    - "{{ hadoop_publish_8032 }}"
+#    - "{{ hadoop_publish_8033 }}"
+#    - "{{ hadoop_publish_8088 }}"
+#    - "{{ hadoop_publish_10020 }}"
+#    - "{{ hadoop_publish_19888 }}"
+#    - "{{ hadoop_publish_10033 }}"
+#
+#- name: modify firewall for hadoop communications on all nodes
+#  when: firewall_state.stdout == "running"
+#  become: true
+#  command: firewall-cmd --zone=public --remove-port={{ item }}/tcp --permanent
+#  with_items:
+#    - "{{ hadoop_publish_50010 }}"
+#    - "{{ hadoop_publish_50020 }}"
+#    - "{{ hadoop_publish_50075 }}"
+#    - "{{ hadoop_publish_8040 }}"
+#    - "{{ hadoop_publish_8042 }}"
+#
+#- name: reload firewall rules
+#  when: firewall_state.stdout == "running"
+#  become: true
+#  command: firewall-cmd --reload
+
+- name: delete hadoop data directory - {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop
+  become: true
+  file: path={{ hadoop_mount_root }}/{{ group_prefix }}/hadoop state=absent

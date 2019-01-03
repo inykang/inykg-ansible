@@ -1,0 +1,8 @@
+---
+
+micro_cep_mount_root: /share
+micro_cep_conf_dir_name: micro-cep-conf
+micro_cep_glusterfs_host: "{{ play_hosts[0] }}"
+micro_cep_swarm_manager_host: "{{ play_hosts[0] }}"
+micro_cep_overlay: microcep
+micro_cep_image: prireg:5000/obzen-micro-cep:3.2.0-snapshot

@@ -1,0 +1,59 @@
+---
+
+- hosts: cents
+#- hosts: hds
+  any_errors_fatal: true
+  vars:
+    group_prefix: prod
+  vars_files:
+    - vars/weavenet.yaml
+    - vars/elk.yaml
+    - vars/zookeeper.yaml
+    - vars/kafka.yaml
+    - vars/cassandra.yaml
+    - vars/cep.yaml
+    - vars/hadoop.yaml
+    - vars/spark.yaml
+    - vars/micro-cep.yaml
+    - vars/ignite.yaml
+    - vars/flink.yaml
+  tasks:
+    - import_tasks: tasks/destroy-flink.yaml
+      tags: ['flink']
+#
+    - import_tasks: tasks/destroy-ignite.yaml
+#      tags: ['ignite']
+#
+    - import_tasks: tasks/destroy-spark-standalone.yaml
+      tags: ['spark']
+#
+    - import_tasks: tasks/destroy-hadoop.yaml
+      tags: ['hadoop']
+#
+    - import_tasks: tasks/destroy-obzen-micro-cep-example.yaml
+      tags: ['micro-cep-example']
+#
+    - import_tasks: tasks/destroy-obzen-micro-cep-env.yaml
+      tags: ['micro-cep-env']
+#
+    - import_tasks: tasks/destroy-obzen-cep.yaml
+      tags: ['cep']
+#
+    - import_tasks: tasks/destroy-cassandra.yaml
+      tags: ['cassandra']
+#
+    - import_tasks: tasks/destroy-kafka.yaml
+      tags: ['kafka']
+#
+    - import_tasks: tasks/destroy-zookeeper.yaml
+      tags: ['zookeeper']
+#
+    - import_tasks: tasks/destroy-meetup-stream.yaml
+      tags: ['meetup']
+#
+    - import_tasks: tasks/destroy-elk.yaml
+#      tags: ['elk']
+#
+    - import_tasks: tasks/disable-weavenet.yaml
+      tags: ['weavenet']
+#

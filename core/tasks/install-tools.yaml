@@ -1,0 +1,55 @@
+---
+
+- name: install EPEL Repository
+  become: true
+  yum:
+    name: epel-release
+    state: present
+
+  #- name: update installed packages
+  #  become: true
+  #  yum: name=* state=latest
+  #  any_errors_fatal: true
+
+# for Python related and extra
+- name: install pip
+  become: true
+  yum:
+    name: '{{ item }}'
+    state: present
+  with_items:
+    - python-pip
+
+# Uptodate pip
+- name: update pip
+  become: true
+  shell: pip install --upgrade pip
+
+# Install docker-py
+- name: install docker-py
+  become: true
+  pip:
+    name: docker-py
+#    version: 1.7.0
+    state: present
+
+# for ansible expect module
+- name: install pexpect
+  become: true
+  pip:
+    name: pexpect
+    state: present
+
+# for network tasks
+- name: install net-tools
+  become: true
+  yum:
+    name: net-tools
+    state: present
+
+# for
+- name: install nc
+  become: true
+  yum:
+    name: nc
+    state: present

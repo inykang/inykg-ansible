@@ -1,0 +1,38 @@
+---
+
+hadoop_mount_root: /data
+master_node_host: "{{ play_hosts[0] }}"
+# Name node
+hadoop_publish_8020: 8020
+hadoop_publish_50070: 50070
+# Secondary name node
+hadoop_publish_50090: 50090
+# Resource manager
+hadoop_publish_8030: 8030
+hadoop_publish_8031: 8031
+hadoop_publish_8032: 8032
+hadoop_publish_8033: 8033
+hadoop_publish_8088: 8088
+# Job history server
+hadoop_publish_10020: 10020
+hadoop_publish_19888: 19888
+hadoop_publish_10033: 10033
+# Yarn timeline server
+hadoop_publish_10200: 10200
+hadoop_publish_8188: 8188
+hadoop_publish_8190: 8190
+# Data node
+hadoop_publish_50010: 50010
+hadoop_publish_50020: 50020
+hadoop_publish_50075: 50075
+# Node manager
+hadoop_publish_8040: 8040
+hadoop_publish_8042: 8042
+# images
+hadoop_name_node_image: prireg:5000/hadoop-name-node:2.7.4
+hadoop_secondary_name_node_image: prireg:5000/hadoop-secondary-name-node:2.7.4
+hadoop_data_node_image: prireg:5000/hadoop-data-node:2.7.4
+hadoop_resource_manager_image: prireg:5000/hadoop-resource-manager:2.7.4
+hadoop_node_manager_image: prireg:5000/hadoop-node-manager:2.7.4
+hadoop_job_history_server_image: prireg:5000/hadoop-job-history-server:2.7.4
+hadoop_yarn_timeline_server_image: prireg:5000/hadoop-yarn-timeline-server:2.7.4

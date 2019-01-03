@@ -1,0 +1,61 @@
+---
+# This is to demonstrate micro-cep deployment
+#
+- name: find {{ micro_cep_mount_root }}/{{ group_prefix }}/{{ micro_cep_conf_dir_name }} exists
+  when: ansible_hostname == "{{ micro_cep_glusterfs_host }}"
+  stat: 
+    path: '{{ micro_cep_mount_root }}/{{ group_prefix }}/{{ micro_cep_conf_dir_name }}'
+  register: conf_dir
+#
+- debug: msg={{ conf_dir }}
+#
+- name: check conf dir
+  when: ( ansible_hostname == "{{ micro_cep_glusterfs_host }}" ) and ( conf_dir.stat.isdir is not defined or conf_dir.stat.isdir == false )
+  fail: msg="{{ micro_cep_mount_root }}/{{ group_prefix }}/{{ micro_cep_conf_dir_name }} does not exist"
+  any_errors_fatal: true
+#
+- name: copy an example json file to {{ micro_cep_mount_root }}/{{ group_prefix }}/{{ micro_cep_conf_dir_name }}/
+  when: ansible_hostname == "{{ micro_cep_glusterfs_host }}"
+  become: true
+  copy:
+    src: ./files/{{ item }}
+    dest: '{{ micro_cep_mount_root }}/{{ group_prefix }}/{{ micro_cep_conf_dir_name }}/{{ item }}'
+  with_items:
+    - example.json
+# this is just an example
+- name: create an example micro cep container
+  when: (ansible_hostname == "{{ micro_cep_swarm_manager_host }}") and (use_log_driver == false)
+  command: |
+    docker service create \
+    --network {{ group_prefix }}-{{ micro_cep_overlay }} \
+    --name {{ group_prefix }}-mcep-example \
+    --label SERVICE_NAME={{ group_prefix }}-mcep-example \
+    --mount type=bind,source={{ micro_cep_mount_root }}/{{ group_prefix }}/{{ micro_cep_conf_dir_name }},target=/conf \
+    -e CONFIG_JSON=example.json \
+    -e CASSANDRA_HOSTS={{ cassandra_ip }}:{{ cassandra_publish_9042}} \
+    -e KAFKA_HOSTS={{ kafka_ip }}:{{ kafka_publish_9092 }} \
+    {{ micro_cep_image }}
+  vars:
+    kafka_ip: "{{ hostvars[play_hosts[0]][public_interface]['ipv4']['address'] }}"
+    cassandra_ip: "{{ hostvars[play_hosts[0]][public_interface]['ipv4']['address'] }}"
+# this is just an example
+- name: create an example micro cep container
+  when: (ansible_hostname == "{{ micro_cep_swarm_manager_host }}") and (use_log_driver == true)
+  command: |
+    docker service create \
+    --network {{ group_prefix }}-{{ micro_cep_overlay }} \
+    --name {{ group_prefix }}-mcep-example \
+    --label SERVICE_NAME={{ group_prefix }}-mcep-example \
+    --log-driver gelf \
+    --log-opt gelf-address=udp://{{ logstash_ip }}:{{ elk_publish_12201 }} \
+    --log-opt tag=micro-cep \
+    --mount type=bind,source={{ micro_cep_mount_root }}/{{ group_prefix }}/{{ micro_cep_conf_dir_name }},target=/conf \
+    -e CONFIG_JSON=example.json \
+    -e CASSANDRA_HOSTS={{ cassandra_ip }}:{{ cassandra_publish_9042}} \
+    -e KAFKA_HOSTS={{ kafka_ip }}:{{ kafka_publish_9092 }} \
+    {{ micro_cep_image }}
+  vars:
+    kafka_ip: "{{ hostvars[play_hosts[0]][public_interface]['ipv4']['address'] }}"
+    cassandra_ip: "{{ hostvars[play_hosts[0]][public_interface]['ipv4']['address'] }}"
+    logstash_ip: "{{ hostvars[play_hosts[0]][public_interface]['ipv4']['address'] }}"
+#EOF

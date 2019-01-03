@@ -1,0 +1,14 @@
+---
+# This is to rollback the already built micro-cep environment
+#
+- name: remove the overlay network - {{ group_prefix }}-microcep
+  when: ansible_hostname == "{{ micro_cep_swarm_manager_host }}"
+  command: docker network rm {{ group_prefix }}-{{ micro_cep_overlay }}
+  any_errors_fatal: true
+#
+- name: delete obzen micro cep config directory on the share file system - {{ micro_cep_mount_root }}/{{ group_prefix }}/micro-cep-conf
+  when: ansible_hostname == "{{ micro_cep_glusterfs_host }}"
+  become: true
+  file:
+    path: '{{ micro_cep_mount_root }}/{{ group_prefix }}/{{ micro_cep_conf_dir_name }}'
+    state: absent

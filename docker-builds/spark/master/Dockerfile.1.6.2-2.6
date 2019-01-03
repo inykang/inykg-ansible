@@ -1,0 +1,19 @@
+FROM prireg:5000/spark-base:1.6.2-2.6
+
+MAINTAINER Hun Jae Lee <hunjae.lee@gmail.com>
+
+
+COPY run-spark-master /etc/services.d/spark-master/run
+
+RUN mkdir /ext
+
+VOLUME /ext
+
+ENV PATH $SPARK_HOME/bin:$SPARK_HOME/sbin:$PATH
+WORKDIR /ext
+
+EXPOSE 6066 7077 8080
+# drivers
+EXPOSE 4040-4070
+# jdbc
+EXPOSE 10000

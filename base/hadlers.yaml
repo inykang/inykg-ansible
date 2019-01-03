@@ -1,0 +1,9 @@
+---
+
+- hosts: cents
+  any_errors_fatal: true
+
+  handlers:
+      - name: restart docker
+        service: name=docker state=restarted
+        listen: "restart docker"

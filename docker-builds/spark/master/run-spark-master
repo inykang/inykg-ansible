@@ -1,0 +1,18 @@
+#!/usr/bin/with-contenv sh
+
+SPARK_MASTER_PORT=${SPARK_MASTER_PORT:-"7077"}
+SPARK_MASTER_WEBUI_PORT=${SPARK_MASTER_WEBUI_PORT:-"8080"}
+SPARK_MASTER_OPTS=${SPARK_MASTER_OPTS:-""}
+SPARK_LOCAL_DIRS=${SPARK_LOCAL_DIRS:-"/data/master/work"}
+SPARK_LOG_DIR=${SPARK_LOG_DIR:-"/data/master/logs"}
+
+ENV_SCRIPT=$SPARK_HOME/conf/spark-env.sh
+echo SPARK_MASTER_PORT=$SPARK_MASTER_PORT >> $ENV_SCRIPT
+echo SPARK_MASTER_WEBUI_PORT=$SPARK_MASTER_WEBUI_PORT >> $ENV_SCRIPT
+echo SPARK_MASTER_OPTS=$SPARK_MASTER_OPTS >> $ENV_SCRIPT
+echo SPARK_LOCAL_DIRS=$SPARK_LOCAL_DIRS >> $ENV_SCRIPT
+echo SPARK_LOG_DIR=$SPARK_LOG_DIR >> $ENV_SCRIPT
+
+echo "starting spark master..." 
+#exec /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master --port $SPARK_MASTER_PORT --webui-port $SPARK_MASTER_WEBUI_PORT
+exec /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master

@@ -1,0 +1,23 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/util
+                           http://www.springframework.org/schema/util/spring-util.xsd">
+    <!-- Load external properties file. -->
+    <!--<bean id="placeholderConfig" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">-->
+        <!--<property name="location" value="classpath:secret.properties"/>-->
+    <!--</bean>-->
+    <bean id="dsOracleObzmeta" class="oracle.jdbc.pool.OracleDataSource">
+        <property name="URL" value="jdbc:oracle:thin:@//192.168.10.31:1521/OBZMETA"/>
+        <property name="user" value="ecubeebm"/>
+        <property name="password" value="ecube99"/>
+    </bean>
+    <bean id="dsMySQLIgnite" class="org.mariadb.jdbc.MariaDbDataSource">
+        <property name="URL" value="jdbc:mariadb://192.168.10.136:3306/ignite"/>
+        <property name="user" value="ignite"/>
+        <!--property name="password" value="${dsMySQLIgnite.jdbc.password}"/-->
+    </bean>
+
+</beans>

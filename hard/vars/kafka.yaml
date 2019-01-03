@@ -1,0 +1,10 @@
+---
+
+kafka_mount_root: /data
+kafka_publish_9092: 9092
+kafka_image: prireg:5000/kafka:2.12-0.11.0.0
+kafka_version: 0.11.0.0
+scala_version: 2.12.2
+scala_binary_version: 2.12
+kafka_user: ecube
+kafka_group: ecube

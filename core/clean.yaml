@@ -1,0 +1,50 @@
+---
+
+- hosts: cents
+  any_errors_fatal: true
+  vars_files:
+#    - vars/etcd.yaml
+    - vars/docker.yaml
+#    - vars/flannel.yaml
+    - vars/swarm.yaml
+    - vars/gluster.yaml
+    - vars/share-dir.yaml
+    - vars/hosts.yaml
+#    - vars/prireg.yaml
+  tasks:
+
+#    - import_tasks: tasks/destroy-prireg.yaml
+#      tags: ['prireg']
+
+#    - import_tasks: tasks/remove-hosts.yaml
+#      tags: ['hosts']
+
+#    - import_tasks: tasks/destroy-share-dir.yaml
+#      tags: ['share-dir']
+
+#    - import_tasks: tasks/disable-gluster.yaml
+#      tags: ['gluster']
+
+#    - import_tasks: tasks/disable-docker-swarm.yaml
+#      tags: ['swarm']
+
+#    - import_tasks: tasks/disable-flannel.yaml
+#      tags: ['flannel']
+
+#    - import_tasks: tasks/disable-docker.yaml
+#      tags: ['docker']
+
+#    - import_tasks: tasks/destroy-etcd-cluster.yaml
+#      tags: ['etcd']
+
+    - import_tasks: tasks/destroy-data-dir.yaml
+      tags: ['data-dir']
+
+    - import_tasks: tasks/disable-ntp.yaml
+      tags: ['ntp']
+
+    - import_tasks: tasks/disable-iptables.yaml
+      tags: ['iptables']
+
+    - import_tasks: tasks/uninstall-tools.yaml
+      tags: ['tools']

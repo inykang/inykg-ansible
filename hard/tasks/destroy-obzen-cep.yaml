@@ -1,0 +1,12 @@
+---
+# This will destroy a obzenCEP cluster
+- name: stop and remove obzenCEP containers
+  shell: docker {{ item }} {{ group_prefix }}-cep
+  with_items:
+    - stop
+    - rm
+- name: remove obzenCEP docker mount directory - {{ cep_mount_root }}/{{ group_prefix }}/cep
+  become: true
+  file: 
+    path: '{{ cep_mount_root }}/{{ group_prefix }}/cep'
+    state: absent

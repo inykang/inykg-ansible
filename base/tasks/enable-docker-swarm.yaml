@@ -1,0 +1,54 @@
+---
+# Check if iptables is running
+#- name: check if iptables is running
+#  become: true
+#  command: systemctl is-active iptables
+#  register: iptables_state
+#  ignore_errors: true
+
+#- name: open ports for docker swarm ingress network
+#  when: iptables_state.stdout == "active"
+#  become: true
+#  iptables:
+#    action: insert
+#    chain: INPUT
+#    protocol: '{{ item.protocol }}'
+#    destination_port: '{{ item.port }}'
+#    jump: ACCEPT
+#    state: present
+#  with_items:
+#    - "{{ swarm_ports }}"
+#  any_errors_fatal: true
+
+#- name: save iptable rules
+#  when: iptables_state.stdout == "active"
+#  become: true
+#  command: /sbin/service iptables save
+
+- name: init a swarm
+  when: ansible_hostname == play_hosts[0]
+  shell: docker swarm init --advertise-addr {{ hostvars[ansible_hostname][public_interface]['ipv4']['address'] }}
+
+- name: get join token for other nodes
+  when: ansible_hostname == play_hosts[0]
+  # This will get the token to join as worker
+  #shell: docker swarm join-token -q worker
+  # This will get the token to join as manager
+  shell: docker swarm join-token -q manager
+  register: token
+
+- debug: var=hostvars[play_hosts[0]]['token'].stdout
+  when: (ansible_hostname != play_hosts[0]) and (hostvars[play_hosts[0]]['token'] is defined)
+
+- debug: var=hostvars[play_hosts[0]][public_interface]['ipv4']['address']
+  when: (ansible_hostname != play_hosts[0])
+
+- name: join to the swarm
+  when: (ansible_hostname != play_hosts[0])
+  shell: docker swarm join --token {{ hostvars[play_hosts[0]]['token'].stdout }} {{ hostvars[play_hosts[0]][public_interface]['ipv4']['address'] }}:2377
+
+- name: print node list
+  command: docker node ls
+  register: swarm_node_list
+
+- debug: var=swarm_node_list.stdout_lines

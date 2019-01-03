@@ -1,0 +1,6 @@
+---
+
+prireg_service_name: prireg
+prireg_publish_5000: 5000
+prireg_mount_root: /share
+prireg_image: prireg:5000/registry:2

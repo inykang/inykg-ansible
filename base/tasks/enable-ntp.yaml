@@ -1,0 +1,25 @@
+---
+
+- name: ensure ntp installation
+  become: true
+  yum: 
+    name: ntp,ntpdate,ntp-doc 
+    state: present
+
+- name: ensure ntp started and enabled 
+  become: true
+  service: 
+    name: ntpd
+    state: stopped
+
+- name: synchronize time with time servers
+  become: true
+  command: ntpdate pool.ntp.org
+  ignore_errors: true
+
+- name: ensure ntp service enabled and started
+  become: true
+  service:
+    name: ntpd
+    state: started
+    enabled: yes

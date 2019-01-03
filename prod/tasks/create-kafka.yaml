@@ -1,0 +1,33 @@
+---
+#
+- name: ensure kafka mount directory - {{ kafka_mount_root }}/{{ group_prefix }}/kafka
+  become: true
+  file: 
+    path: '{{ kafka_mount_root }}/{{ group_prefix }}/kafka'
+    state: directory
+
+- name: retrieves IP addresses of play_hosts
+  debug: msg="{{ hostvars[item][public_interface]['ipv4']['address']}}:{{ zookeeper_publish_2181 }}"
+  with_items:
+    - '{{ play_hosts }}'
+  register: ip_addresses
+
+- name: make ZK_CONNECT environment variable value
+  debug: msg="{{ ip_addresses.results | map(attribute='msg') | join(',') }}"
+  register: zk_connect
+
+- name: create kafka cluster
+  shell: |
+    docker run -d --restart always \
+            --name {{ group_prefix }}-kafka \
+            --label SERVICE_NAME={{ group_prefix }}-kafka \
+            -e KAFKA_ID={{ play_hosts.index(inventory_hostname) + 1 }} \
+            -e ADVERTISED_HOST_NAME="{{ ansible_host }}" \
+            -e ZK_CONNECT="{{ zk_connect.msg }}" \
+            -e LOG_DIR=/data/kafka \
+            -p {{ kafka_publish_9092 }}:9092 \
+            -v {{ kafka_mount_root }}/{{ group_prefix }}/kafka:/data/kafka \
+            {{ kafka_image }}
+
+- name: wait for kafka up
+  local_action: wait_for host={{ ansible_host }} port={{ kafka_publish_9092 }} state=started delay=5 timeout=3000

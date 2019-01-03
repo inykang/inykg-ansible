@@ -1,0 +1,13 @@
+#!/bin/bash
+set -e
+start-thriftserver.sh  \
+  --master spark://$(hostname -i):7077 \
+  --name SparkSQL-ThriftServer1 \
+  --hiveconf hive.server2.thrift.port=10000 \
+  --hiveconf hive.server2.thrift.bind.host=$(hostname -i) \
+  --hiveconf hive.metastore.warehouse.dir=/data/hive/warehouse \
+  --hiveconf javax.jdo.option.ConnectionURL=jdbc:mysql://{{ spark_mysql_host }}/metastore \
+  --hiveconf javax.jdo.option.ConnectionDriverName=com.mysql.jdbc.Driver \
+  --hiveconf javax.jdo.option.ConnectionUserName=hduser \
+  --hiveconf javax.jdo.option.ConnectionPassword=hduser-= \
+  --jars /ext/mysql-connector-java-5.1.40-bin.jar

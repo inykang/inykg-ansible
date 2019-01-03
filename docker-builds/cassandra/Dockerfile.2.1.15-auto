@@ -1,0 +1,14 @@
+FROM cassandra:2.1.15
+MAINTAINER Hun Jae Lee <hunjae.lee@gmail.com>
+
+# We need dig, curl command.
+RUN apt-get update \
+      && apt-get install -y --no-install-recommends \
+                        knot-dnsutils \
+                        curl \
+      && rm -rf /var/lib/apt/lists/*
+
+COPY run-entrypoint.sh /run-entrypoint.sh
+
+ENTRYPOINT ["/run-entrypoint.sh"]
+CMD ["cassandra", "-f"]

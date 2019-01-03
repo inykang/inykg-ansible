@@ -1,0 +1,95 @@
+---
+
+- name: make docker not to depend on glusterfs_mounts.service 
+  become: true
+  replace: 
+    dest: /etc/systemd/system/docker.service.d/docker.conf
+    regexp: "glusterfs_mounts.service"
+    replace: ""
+    backup: yes
+    
+- name: reload systemd files
+  become: true
+  command: systemctl daemon-reload
+
+- name: restart docker engine
+  become: true
+  service:
+    name: docker
+    state: restarted
+
+- name: stop and disable glusterfs_mounts.service
+  become: true
+  service:
+    name: glusterfs_mounts
+    state: stopped
+    enabled: no
+
+- name: delete glusterfs_mounts.service file
+  become: true
+  file: 
+    path: /etc/systemd/system/glusterfs_mounts.service
+    state: absent
+
+- name: remove /etc/glusterfs/gfstab
+  become: true
+  file: 
+    path: /etc/glusterfs/gfstab
+    state: absent
+
+- name: remove /etc/glusterfs/mount-volumes.sh
+  become: true
+  file: 
+    path: /etc/glusterfs/mount-volumes.sh
+    state: absent
+
+- name: detach peers from the first host
+  when: ansible_hostname == "{{ play_hosts[0] }}" and item != "{{ play_hosts[0] }}"
+  become: true
+  command: gluster peer detach "{{ item }}"
+  with_items:
+    - "{{ play_hosts }}"
+
+- name: stop and disable the glusterd service
+  become: true
+  service:
+    name: glusterd
+    state: stopped
+    enabled: no
+
+- name: check if iptables is running
+  become: true
+  command: systemctl is-active iptables
+  register: iptables_state
+  ignore_errors: true
+
+- name: remove firewall rules for glusterfs
+  when: iptables_state.stdout == "active"
+  become: true
+  iptables:
+    chain: INPUT
+    protocol: '{{ item.protocol }}'
+    destination_port: '{{ item.port }}'
+    jump: ACCEPT
+    state: absent
+  with_items:
+    - "{{ gluster_ports }}"
+
+- name: save firewall rules
+  when: iptables_state.stdout == "active"
+  become: true
+  command: iptables-save
+
+#
+- name: uninstall glusterfs-server
+  become: true
+  yum: 
+    name: glusterfs-server
+    state: absent
+
+- name: remove gluster yum repository
+  become: true
+  yum: 
+    name: centos-release-gluster
+    state: absent
+

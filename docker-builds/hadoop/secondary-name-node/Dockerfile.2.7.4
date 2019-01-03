@@ -1,0 +1,11 @@
+FROM prireg:5000/hadoop-base:2.7.4
+MAINTAINER Hun Jae Lee <hunjae.lee@gmail.com>
+
+COPY core-site.xml.secondary-name-node $HADOOP_CONF_DIR/core-site.xml
+
+RUN chown hduser:hdgroup $HADOOP_CONF_DIR/core-site.xml
+
+COPY run-secondary-name-node /etc/services.d/secondary-name-node/run
+
+
+EXPOSE 50090

@@ -1,0 +1,23 @@
+---
+# This is to prepare for the micro cep executions
+# Requires clustered-shared filewystem and swarm
+- name: ensure obzen micro cep config directory on the share file system - {{ micro_cep_mount_root }}/{{ group_prefix }}/{{ micro_cep_conf_dir_name }}
+  when: ansible_hostname == "{{ micro_cep_glusterfs_host }}"
+  become: true
+  file:
+    path: '{{ micro_cep_mount_root }}/{{ group_prefix }}/{{ micro_cep_conf_dir_name }}'
+    state: directory
+#
+#- name: copy an example json file to {{ micro_cep_mount_root }}/{{ group_prefix }}/{{ micro_cep_conf_dir_name }}/
+#  when: ansible_hostname == "{{ micro_cep_glusterfs_host }}"
+#  become: true
+#  copy:
+#    src: ./files/{{ item }}
+#    dest: '{{ micro_cep_mount_root }}/{{ group_prefix }}/{{ micro_cep_conf_dir_name }}/{{ item }}'
+#  with_items:
+#    - example.json
+#
+- name: create an overlay network for micro cep containers
+  when: ansible_hostname == "{{ micro_cep_swarm_manager_host }}"
+  command: docker network create --driver overlay {{ group_prefix }}-{{ micro_cep_overlay }}
+  any_errors_fatal: true

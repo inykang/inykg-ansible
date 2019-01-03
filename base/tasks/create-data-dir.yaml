@@ -1,0 +1,7 @@
+---
+
+- name: Ensure data directory - /data
+  become: true
+  file: 
+    path: /data 
+    state: directory 

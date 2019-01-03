@@ -1,0 +1,59 @@
+---
+- name: if it exist, remove old symbolic link
+  become: true
+  file:
+    path: /opt/elasticsearch
+    state: absent
+  tags: ['elasticsearch']
+
+- name: extract image to /opt
+  become: true
+  unarchive:
+    src: images/elasticsearch-{{ elasticsearch_version }}.tar.gz
+    owner: ecube
+    group: ecube
+    dest: /opt
+  tags: ['elasticsearch']
+    
+- name: create symbolic link
+  become: true
+  file:
+    src: /opt/elasticsearch-{{ elasticsearch_version }}
+    dest: /opt/elasticsearch
+    owner: ecube
+    group: ecube
+    state: link
+  tags: ['elasticsearch']
+
+- name: make data,log directories
+  become: true
+  file:
+    path: "{{ item }}"
+    owner: ecube
+    group: ecube
+    state: directory
+  with_items:
+    - /data/elasticsearch
+    - /data/logs/elk
+  tags: ['elasticsearch']
+
+- name: copy config files
+  copy: 
+    src: files/elk/{{ item }}
+    dest: /opt/elasticsearch/config/{{ item }}
+    mode: 0755
+  with_items:
+    - elasticsearch.yml
+    - jvm.options
+    - log4j2.properties
+  tags: ['elasticsearch']
+  
+- name: copy start scripts
+  copy: 
+    src: files/elk/{{ item }}
+    dest: /opt/elasticsearch/{{ item }}
+    mode: 0755
+  with_items:
+    - elasticsearch.sh
+  tags: ['elasticsearch']
+

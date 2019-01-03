@@ -1,0 +1,21 @@
+---
+
+- name: destroy elk services 
+  when: inventory_hostname == play_hosts[0]
+  shell: docker service rm "{{ group_prefix}}-{{ item }}"
+  with_items:
+    -  kibana
+    -  logstash
+    -  elasticsearch
+  tags: [elk,elk-with-data]
+
+- name: Destroy its overlay network ({{ group_prefix}}-{{ elk_overlay_name }})
+  when: inventory_hostname == play_hosts[0]
+  shell: docker network rm "{{ group_prefix }}-{{ elk_overlay_name }}"
+  tags: [elk,elk-with-data]
+
+- name: Remove ELK mount directory 
+  when: inventory_hostname == play_hosts[0]
+  become: true
+  file: path={{ elk_mount_root }}/elk state=absent
+  tags: [elk-with-data]

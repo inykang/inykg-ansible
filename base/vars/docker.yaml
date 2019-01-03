@@ -1,0 +1,4 @@
+---
+
+docker_engine_version: 17.09.0.ce-1.el7.centos
+docker_remote_port: { protocol: tcp, port: 2375 }

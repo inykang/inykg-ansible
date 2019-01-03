@@ -1,0 +1,6 @@
+---
+
+#etcd_control_host: cent-01
+flannel_host_nic: enp0s17
+flannel_etcd_config: '"{ \"Network\":\"10.0.0.0/8\", \"SubnetLen\":20, \"SubnetMin\":\"10.10.0.0\", \"SubnetMax\":\"10.99.0.0\", \"Backend\":{ \"Type\":\"udp\", \"Port\":8285 }}"'
+flannel_backend_port: 8285

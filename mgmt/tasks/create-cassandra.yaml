@@ -1,0 +1,56 @@
+---
+# This will make a Cassandra cluster
+- name: ensure cassandra mount directory - {{ cassandra_mount_root }}/{{ group_prefix }}/cassandra
+  become: true
+  file: 
+    path: '{{ cassandra_mount_root }}/{{ group_prefix }}/cassandra'
+    state: directory
+
+- name: retrieve IP addresses of hosts
+  shell: echo "{{ hostvars[item][public_interface]['ipv4']['address']}}"
+  with_items:
+    - "{{ play_hosts }}"
+  register: ip_addresses
+
+- name: show cassandra seeds
+  #debug: msg="seeds={{ ip_addresses.results | map(attribute='stdout') | join(',') | regex_replace(hostvars[inventory_hostname][public_interface]['ipv4']['address'], '') | regex_replace(',,', ',') | regex_replace('^,', '') | regex_replace(',$', '') }}"
+  debug: msg="seeds={{ ip_addresses.results | map(attribute='stdout') | join(',') }}"
+  register: seeds
+
+- name: start cassandra cluster
+  when: use_log_driver == false
+  shell: |
+    docker run -d --restart always \
+            --name {{ group_prefix }}-cassandra \
+            --label SERVICE_NAME={{ group_prefix }}-cassandra \
+            -p {{ cassandra_publish_7000 }}:7000 \
+            -p {{ cassandra_publish_9042 }}:9042 \
+            -p {{ cassandra_publish_9160 }}:9160 \
+            -e CASSANDRA_SEEDS="{{ seeds.msg }}" \
+            -e CASSANDRA_LISTEN_ADDRESS_COMMAND="hostname -i" \
+            -e CASSANDRA_BROADCAST_ADDRESS="{{ ansible_host }}" \
+            -v {{ cassandra_mount_root }}/{{ group_prefix }}/cassandra:/var/lib/cassandra \
+            {{ cassandra_image }}
+
+- name: start cassandra cluster
+  when: use_log_driver == true
+  shell: |
+    docker run -d --restart always \
+            --name {{ group_prefix }}-cassandra \
+            --label SERVICE_NAME={{ group_prefix }}-cassandra \
+            --log-driver gelf \
+            --log-opt gelf-address=udp://{{ logstash_ip }}:{{ elk_publish_12201 }} \
+            --log-opt tag=cassandra \
+            -p {{ cassandra_publish_7000 }}:7000 \
+            -p {{ cassandra_publish_9042 }}:9042 \
+            -p {{ cassandra_publish_9160 }}:9160 \
+            -e CASSANDRA_SEEDS="{{ seeds.msg }}" \
+            -e CASSANDRA_LISTEN_ADDRESS_COMMAND="hostname -i" \
+            -e CASSANDRA_BROADCAST_ADDRESS="{{ ansible_host }}" \
+            -v {{ cassandra_mount_root }}/{{ group_prefix }}/cassandra:/var/lib/cassandra \
+            {{ cassandra_image }}
+  vars:
+    logstash_ip: "{{ hostvars[inventory_hostname][public_interface]['ipv4']['address'] }}"
+
+- name: wait for cassandra up
+  local_action: wait_for host={{ ansible_host }} port={{ cassandra_publish_9042 }} state=started delay=5 timeout=3000

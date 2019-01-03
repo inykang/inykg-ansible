@@ -1,0 +1,10 @@
+---
+
+- name: removes host entries in /etc/hosts
+  become: true
+  lineinfile:
+    dest: /etc/hosts
+    regexp: "{{ item.host }}"
+    state: absent
+  with_items:
+    - "{{ host_entries }}"

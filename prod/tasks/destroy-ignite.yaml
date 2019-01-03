@@ -1,0 +1,15 @@
+---
+ 
+- name: stop and remove ignite containers
+  command: docker {{ item }} {{ group_prefix }}-ignite
+  with_items:
+    - stop
+    - rm
+  tags: ['ignite', 'ignite-with-data']
+    
+- name: ensure ignite data directory removed
+  become: true
+  file:
+    path: '{{ ignite_mount_root }}/{{ group_prefix }}/ignite'
+    state: absent
+  tags: ['ignite-with-data']

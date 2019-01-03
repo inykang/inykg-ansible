@@ -1,0 +1,47 @@
+---
+# This will make a obzenCEP cluster
+- name: ensure obzenCEP docker mount directory - {{ cep_mount_root }}/{{ group_prefix }}/cep
+  become: true
+  file:
+    path: '{{ cep_mount_root }}/{{ group_prefix }}/cep'
+    state: directory
+
+- name: retrieve IP addresses of hosts
+  shell: echo "{{ hostvars[item][public_interface]['ipv4']['address']}}"
+  with_items: 
+    - "{{ play_hosts }}"
+  register: ip_addresses
+
+- name: show HZ_MEMBERS
+  debug: msg="{{ ip_addresses.results | map(attribute='stdout') | join(',') }}"
+  register: HZ_MEMBERS
+
+- name: show CASSANDRA_HOSTS
+  debug: msg="{{ ip_addresses.results | map(attribute='stdout') | join(',') }}"
+  register: CASSANDRA_HOSTS
+
+- name: show KAFKA_URLS
+  debug: msg="{{ ip_addresses.results | map(attribute='stdout') | map('regex_replace', '$', ':' + kafka_publish_9092|string) | join(',') }}"
+  register: KAFKA_URLS
+
+- name: start obzenCEP cluster
+  shell: |
+    docker run -d --restart always \
+            --name {{ group_prefix }}-cep \
+            --label SERVICE_NAME={{ group_prefix }}-cep \
+            --network=host \
+            -p {{ cep_publish_5701 }}:5701 \
+            -p {{ cep_publish_5800 }}:5800 \
+            -p {{ cep_publish_8082 }}:8082 \
+            -p {{ cep_publish_9010 }}:9010 \
+            -e HOST_IP="{{ hostvars[inventory_hostname][public_interface]['ipv4']['address'] }}" \
+            -e HZ_MEMBER_IPS="{{ HZ_MEMBERS.msg }}" \
+            -e CASSANDRA_HOSTS="{{ CASSANDRA_HOSTS.msg }}" \
+            -e CASSANDRA_PORT_9160="{{ cassandra_publish_9160 }}" \
+            -e CASSANDRA_PORT_9042="{{ cassandra_publish_9042 }}" \
+            -e KAFKA_URLS="{{ KAFKA_URLS.msg }}" \
+            -v {{ cep_mount_root }}/{{ group_prefix }}/cep:/data/obzen-cep \
+            {{ cep_image }}
+
+- name: wait for obzenCEP up
+  local_action: wait_for host={{ ansible_host }} port={{ cep_publish_8082 }} state=started delay=5 timeout=3000

@@ -1,0 +1,31 @@
+---
+
+- hosts: cents
+  any_errors_fatal: true
+  vars:
+    public_interface: ansible_eth0
+  vars_files:
+#    - vars/etcd.yaml
+    - vars/docker.yaml
+#    - vars/flannel.yaml
+    - vars/swarm.yaml
+    - vars/gluster.yaml
+#    - vars/share-dir.yaml
+#    - vars/hosts.yaml
+    - vars/prireg.yaml
+  tasks:
+    - import_tasks: tasks/install-tools.yaml
+      tags: ['tools']
+
+#
+# CentOS/7 firewall-cmd can mess docker networking
+# Instead use iptables here.
+#
+#    - import_tasks: tasks/enable-iptables.yaml
+#      tags: ['iptables']
+#
+    - import_tasks: tasks/enable-ntp.yaml
+      tags: ['ntp']
+
+    - import_tasks: tasks/create-data-dir.yaml
+      tags: ['data-dir']

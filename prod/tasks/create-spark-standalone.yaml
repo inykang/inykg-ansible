@@ -1,0 +1,82 @@
+---
+ 
+- name: ensure spark data directory - {{ spark_mount_root }}/{{ group_prefix }}/spark
+  become: true
+  file:
+    path: '{{ spark_mount_root }}/{{ group_prefix }}/spark'
+    state: directory 
+#
+- name: ensure spark ext directory - {{ spark_mount_root }}/{{ group_prefix }}/spark-ext
+  when: ansible_hostname == "{{ spark_master_host }}"
+  become: true
+  file:
+    path: '{{ spark_mount_root }}/{{ group_prefix }}/spark-ext'
+    state: directory 
+#
+- name: copy mysql-connector-java jar to the spark-ext of the master host
+  when: ansible_hostname == "{{ spark_master_host }}"
+  become: true
+  copy:
+    src: ./files/{{ item }}
+    dest: '{{ spark_mount_root }}/{{ group_prefix }}/spark-ext/{{ item }}'
+  with_items:
+    - mysql-connector-java-5.1.40-bin.jar
+#
+- name: copy submit scripts to the spark-ext of the master host
+  when: ansible_hostname == "{{ spark_master_host }}"
+  become: true
+  template:
+    src: ./files/{{ item }}.j2
+    dest: '{{ spark_mount_root }}/{{ group_prefix }}/spark-ext/{{ item }}'
+    mode: 755
+  with_items:
+    - run-thriftserver.sh
+    
+- name: get dns-agrs of weavenet
+  command: weave dns-args
+  register: dns_args
+#
+- name: run a spark master node container
+  when: ansible_hostname == "{{ spark_master_host }}"
+  any_errors_fatal: true
+  shell: |
+    docker run -d --restart always \
+    --name {{ group_prefix }}-spark-master \
+    --label SERVICE_NAME={{ group_prefix }}-spark-master \
+    --network weave \
+    --hostname {{ group_prefix }}-spark-master.{{ weavenet_domain }}.local \
+    {{ dns_args.stdout }} \
+    -p {{ spark_publish_6066 }}:6066 \
+    -p {{ spark_publish_7077 }}:7077 \
+    -p {{ spark_publish_8080 }}:8080 \
+    -p {{ spark_publish_4040_4070 }}:4040-4070 \
+    -p {{ spark_publish_10000 }}:10000 \
+    -v {{ spark_mount_root }}/{{ group_prefix }}/spark:/data \
+    -v {{ spark_mount_root }}/{{ group_prefix }}/spark-ext:/ext \
+    {{ spark_master_image }}
+#
+- name: run spark slave node containers
+  any_errors_fatal: true
+  shell: |
+    docker run -d --restart always \
+    --name {{ group_prefix }}-spark-slave-{{ play_hosts.index(ansible_hostname) }} \
+    --label SERVICE_NAME={{ group_prefix }}-spark-slave \
+    --network weave \
+    --hostname {{ group_prefix }}-spark-slave-{{ play_hosts.index(ansible_hostname) }}.{{ weavenet_domain }}.local \
+    {{ dns_args.stdout }} \
+    -e SPARK_MASTER_IP={{ group_prefix }}-spark-master \
+    -e SPARK_MASTER_PORT={{ spark_publish_7077 }} \
+    -p {{ spark_publish_8081 }}:8081 \
+    -p {{ spark_publish_40201 }}:40201 \
+    -v {{ spark_mount_root }}/{{ group_prefix }}/spark:/data \
+    {{ spark_slave_image }}
+#
+#    -e SPARK_MASTER_IP={{ hostvars[spark_master_host][public_interface]['ipv4']['address'] }} \
+#
+- name: start thriftserver
+  when: ansible_hostname == "{{ spark_master_host }}"
+  command: docker exec -i {{ group_prefix }}-spark-master /ext/run-thriftserver.sh
+  register: thriftserver_start
+#
+- debug: var=thriftserver_start.stdout_lines
+  when: ansible_hostname == "{{ spark_master_host }}"

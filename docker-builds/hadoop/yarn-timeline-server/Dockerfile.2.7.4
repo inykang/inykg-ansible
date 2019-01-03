@@ -1,0 +1,14 @@
+FROM prireg:5000/hadoop-base:2.7.4
+MAINTAINER Hun Jae Lee <hunjae.lee@gmail.com>
+
+COPY core-site.xml.timeline-server $HADOOP_CONF_DIR/core-site.xml
+COPY yarn-site.xml.timeline-server $HADOOP_CONF_DIR/yarn-site.xml
+
+RUN chown hduser:hdgroup $HADOOP_CONF_DIR/core-site.xml
+RUN chown hduser:hdgroup $HADOOP_CONF_DIR/yarn-site.xml
+
+COPY run-timeline-server /etc/services.d/timeline-server/run
+
+
+## Timeline server
+EXPOSE 10200 8188 8190

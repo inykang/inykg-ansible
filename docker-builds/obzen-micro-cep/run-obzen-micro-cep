@@ -1,0 +1,16 @@
+#!/usr/bin/with-contenv sh
+
+# check variables
+# CONFI_JSON
+# CASSANDRA_HOSTS
+#
+if [ -z ${CONFIG_JSON+x} ] || [ -z ${CASSANDRA_HOSTS+x} ] || [ -z ${KAFKA_HOSTS+x} ]; then
+  echo no config file or cassandra or kafka hosts provided
+  exit 1
+fi
+
+CONFIG_JSON_PATH=/conf/$CONFIG_JSON
+sed -i "s/%kafka_hosts%/${KAFKA_HOSTS}/" /micro-cep/kafka-topic-producer.properties
+sed -i "s/%kafka_hosts%/${KAFKA_HOSTS}/" /micro-cep/kafka-simpler-consumer.properties
+
+exec java -cp "/micro-cep:/micro-cep/*" com.obzen.cep.Launcher -f $CONFIG_JSON_PATH -s $CASSANDRA_HOSTS

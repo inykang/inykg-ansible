@@ -1,0 +1,30 @@
+---
+
+- hosts: cents
+  any_errors_fatal: true
+  tasks:
+    - name: copy ignite image to servers
+      copy: 
+        src: images/apache-ignite-fabric-2.2.0-bin.tgz
+        dest: /home/ecube/images/apache-ignite-fabric-2.2.0-bin.tgz
+
+#    - name: extract image to /opt
+#      become: true
+#      shell: tar xzvf /home/ecube/images/apache-ignite-fabric-2.2.0-bin.tgz
+
+    - name: extract image to /opt
+      become: true
+      unarchive:
+        src: images/apache-ignite-fabric-2.2.0-bin.tgz
+        dest: /opt
+
+    - name: create symbolic link
+      become: true
+      file:
+        src: /opt/apache-ignite-fabric-2.2.0-bin
+        dest: /opt/ignite
+        state: link
+
+    - name: change owner to ecube
+      become: true
+      shell: chown -R ecube:ecube /opt/ignite*

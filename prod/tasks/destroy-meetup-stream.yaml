@@ -1,0 +1,7 @@
+---
+- name: stop meetup sample stream client
+  when: ansible_hostname == play_hosts[1]
+  command: '{{ item }}'
+  with_items:
+    - docker stop {{ group_prefix }}-meetup-stream
+    - docker rm {{ group_prefix }}-meetup-stream

@@ -1,0 +1,44 @@
+#!/usr/bin/with-contenv sh
+
+#check variables
+# NAME_NODE_HOST
+# NAME_NODE_FS_PORT
+if [ -z ${NAME_NODE_HOST+x} ]; then
+  echo environment varialbe NAME_NODE_HOST is unset. exiting...
+  exit 1
+fi
+if [ -z ${NAME_NODE_FS_PORT+x} ]; then
+  echo environment varialbe NAME_NODE_FS_PORT is unset. exiting...
+  exit 1
+fi
+if [ -z ${RESOURCE_MANAGER_HOST+x} ]; then
+  echo environment varialbe RESOURCE_MANAGER_HOST is unset. exiting...
+  exit 1
+fi
+if [ -z ${TIMELINE_SERVER_HOST+x} ]; then
+  echo environment varialbe TIMELINE_SERVER_HOST is unset. exiting...
+  exit 1
+fi
+if [ -z ${TIMELINE_SERVER_PORT+x} ]; then
+  echo environment varialbe TIMELINE_SERVER_PORT is unset. exiting...
+  exit 1
+fi
+if [ -z ${TIMELINE_SERVER_WEB_PORT+x} ]; then
+  echo environment varialbe TIMELINE_SERVER_WEB_PORT is unset. exiting...
+  exit 1
+fi
+if [ -z ${TIMELINE_SERVER_WEB_HTTPS_PORT+x} ]; then
+  echo environment varialbe TIMELINE_SERVER_WEB_HTTPS_PORT is unset. exiting...
+  exit 1
+fi
+
+# substitude configurations
+su-exec hduser sed -i "s/%fs.defaultFS.address%/${NAME_NODE_HOST}:${NAME_NODE_FS_PORT}/g" $YARN_CONF_DIR/core-site.xml
+su-exec hduser sed -i "s/%resourcemanager.host%/${RESOURCE_MANAGER_HOST}/g" $YARN_CONF_DIR/yarn-site.xml
+su-exec hduser sed -i "s/%yarn.timeline-service.hostname%/${TIMELINE_SERVER_HOST}/g" $YARN_CONF_DIR/yarn-site.xml
+su-exec hduser sed -i "s/%yarn.timeline-service.address%/${TIMELINE_SERVER_HOST}:${TIMELINE_SERVER_PORT}/g" $YARN_CONF_DIR/yarn-site.xml
+su-exec hduser sed -i "s/%yarn.timeline-service.webapp.address%/${TIMELINE_SERVER_HOST}:${TIMELINE_SERVER_WEB_PORT}/g" $YARN_CONF_DIR/yarn-site.xml
+su-exec hduser sed -i "s/%yarn.timeline-service.webapp.https.address%/${TIMELINE_SERVER_HOST}:${TIMELINE_SERVER_WEB_HTTPS_PORT}/g" $YARN_CONF_DIR/yarn-site.xml
+
+echo "starting resource manager..."
+exec su-exec hduser $HADOOP_PREFIX/bin/yarn resourcemanager

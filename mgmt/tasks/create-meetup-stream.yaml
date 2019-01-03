@@ -1,0 +1,23 @@
+---
+- name: start meetup sample stream client
+  when: use_log_driver == false and ansible_hostname == play_hosts[1]
+  shell: |
+    docker run -d --restart always \
+            --name {{ group_prefix }}-meetup-stream \
+            --label SERVICE_NAME={{ group_prefix }}-meetup-stream \
+            -e MEETUP_ENDPOINT={{ meetup_endpoint }} \
+            {{ meetup_stream_image }}
+
+- name: start meetup stream client with a log driver
+  when: use_log_driver == true and ansible_hostname == play_hosts[1]
+  shell: |
+    docker run -d --restart always \
+            --name {{ group_prefix }}-meetup-stream \
+            --label SERVICE_NAME={{ group_prefix }}-meetup-stream \
+            --log-driver gelf \
+            --log-opt gelf-address=udp://{{ logstash_ip }}:{{ elk_publish_12201 }} \
+            --log-opt tag=meetup-oe \
+            -e MEETUP_ENDPOINT={{ meetup_endpoint }} \
+            {{ meetup_stream_image }}
+  vars:
+    logstash_ip: "{{ hostvars[inventory_hostname][public_interface]['ipv4']['address'] }}"

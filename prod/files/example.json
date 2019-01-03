@@ -1,0 +1,38 @@
+{
+  "inputPorts": [
+    {
+      "adapterProviderName": "KafkaSimplerEventMessageAdapterProvider",
+      "portName": "sampleInName00",
+      "streamId": "cseEventStream",
+      "eventMessageHeaderSpec":[
+        {"type":"STRING", "value":"CEP IN"},
+        {"type":"DOUBLE", "value":0.0}
+      ]
+    }
+  ],
+  "outputPorts": [
+    {
+      "adapterProviderName": "KafkaSimplerEventMessageAdapterProvider",
+      "portName": "sampleOutName00",
+      "streamId": "OutStockStream",
+      "eventMessageHeaderSpec":[
+        {"type":"STRING", "value":"CEP OUT"},
+        {"type":"DOUBLE", "value":1.1}
+      ]
+    }
+  ],
+  "executionPlan": [
+    "@Plan:name('SimpleTest1')",
+    "define stream cseEventStream (symbol string, price float);",
+    "partition with (symbol of cseEventStream)",
+    "begin",
+    "   @info(name = 'query') ",
+    "   from cseEventStream ",
+    "   select symbol, sum(price) as price ",
+    "   insert into OutStockStream ;",
+    "end;"
+  ],
+  "useJunction": false,
+  "snapshotIntervalMinutes": 1,
+  "snapshotExpireMinutes": 1440
+}

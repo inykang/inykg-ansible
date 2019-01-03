@@ -1,0 +1,21 @@
+---
+- name: remove symbolic link
+  become: true
+  file:
+    path: /opt/elasticsearch
+    state: absent
+
+- name: remove installed directory, /opt/elasticsearch-{{ elasticsearch_version }}
+  become: true
+  file:
+    path: /opt/elasticsearch-{{ elasticsearch_version }}
+    state: absent
+    
+- name: remove data,log directories
+  become: true
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /data/elasticsearch
+    - /data/logs/elk

@@ -1,0 +1,55 @@
+---
+# This is per host deployment
+- name: ensure zookeeper mount directories - {{ zookeeper_mount_root }}/{{ group_prefix }}/zookeeper/{data, datalog}
+  become: true
+  file:
+    path: '{{ zookeeper_mount_root }}/{{ group_prefix }}/zookeeper/{{ item }}'
+    state: directory
+  with_items:
+    - data
+    - datalog
+# Make zookeeper member list
+- name: find my ZOO ID
+  shell: echo "{{ item }}"
+  when: ansible_hostname == play_hosts[item|int -1]
+  with_sequence: count={{ play_hosts | length }}
+  register: my_id_map
+
+- name: set my ZOO ID
+  debug:
+    msg: "{{ my_id_map.results | selectattr('stdout', 'defined') | map(attribute='stdout') | join('') }}"
+  register: my_id
+
+- name: retrieve IP addresses of hosts
+  shell: echo "server.{{ item }}:{{ hostvars[play_hosts[item|int - 1]][public_interface]['ipv4']['address']}}:{{ zookeeper_publish_2888 }}:{{ zookeeper_publish_3888 }}"
+  with_sequence: count={{ play_hosts | length }}
+  register: zoo_servers_list
+
+- name: make ZOO servers string
+  debug:
+    msg: "{{ zoo_servers_list.results | map(attribute='stdout') | join(' ') }}"
+  register: zoo_servers_string
+
+# Example string: "server.1=0.0.0.0:2888:3888 server.2=172.17.8.102:2888:3888 server.3=172.17.8.103:2888:3888"
+- name: change ZOO servers string (my IP to 0.0.0.0)
+  debug:
+    msg: "{{ zoo_servers_string['msg'] | regex_replace(hostvars[ansible_hostname][public_interface]['ipv4']['address'], '0.0.0.0') }}"
+  register: zoo_servers
+
+- name: create a zookeeper cluster
+  shell: |
+    docker run -d --restart always \
+      --name {{ group_prefix }}-zookeeper \
+      --label SERVICE_NAME={{ group_prefix }}-zookeeper \
+      --network host \
+      -e ZOO_MY_ID={{ my_id.msg }} \
+      -e ZOO_SERVERS="{{ zoo_servers.msg }}" \
+      -v {{ zookeeper_mount_root }}/{{ group_prefix }}/zookeeper/data:/data \
+      -v {{ zookeeper_mount_root }}/{{ group_prefix }}/zookeeper/datalog:/datalog \
+      -p {{ zookeeper_publish_2181 }}:2181 \
+      -p {{ zookeeper_publish_2888 }}:2888 \
+      -p {{ zookeeper_publish_3888 }}:3888 \
+      {{ zookeeper_image }}
+
+- name: wait for zookeeper up
+  local_action: wait_for host={{ ansible_host }} port={{ zookeeper_publish_2181 }} state=started delay=5 timeout=3000

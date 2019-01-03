@@ -1,0 +1,83 @@
+---
+
+# Check if firewall running
+- name: check if iptables running
+  become: true
+  command: systemctl is-active iptables
+  register: iptables_state
+  ignore_errors: true
+
+#Use if firewalld is enabled
+- name: close Docker remote API port {{ docker_remote_port.port }}
+  when: iptables_state.stdout == "active"
+  become: true
+  iptables:
+    chain: INPUT
+    protocol: '{{ docker_remote_port.protocol }}'
+    destination_port: '{{ docker_remote_port.port }}'
+    jump: ACCEPT
+    state: absent
+
+- name: save iptables rule
+  when: iptables_state.stdout == "active"
+  become: true
+  command: iptables-save
+  
+- name: stop/disable docker
+  become: true
+  service:
+    name: docker
+    enabled: no
+    state: stopped
+
+- name: remove  /etc/systemd/system/docker.service.d
+  become: true
+  file:
+    path: /etc/systemd/system/docker.service.d/docker.conf
+    state: absent
+
+- name: remove /etc/systemd/system/docker.service.d directory
+  become: true
+  file: 
+    path: /etc/systemd/system/docker.service.d 
+    state: absent
+
+- name: remove /usr/lib/systemd/system/docker.socket
+  become: true
+  file:
+    path: /usr/lib/systemd/system/docker.socket
+    state: absent
+
+- name: reload systemd
+  become: true
+  shell: systemctl daemon-reload
+
+- name: remove a user(vagrant) from the docker group
+  become: true
+  user:
+    name: vagrant
+    groups:
+
+- name: kill ssh connections to completely logout
+  become: true
+  shell: sleep 1; pkill -U {{ ansible_ssh_user }} sshd
+  async: 3
+  poll: 2
+
+- name: uninstall docker-engine
+  become: true
+  yum:
+    name: docker-ce
+    state: absent
+
+- name: remove images,containers,volumes,customized configurations
+  become: true
+  file: 
+    path: /var/lib/docker
+    state: absent
+
+- name: remove docker.repo
+  become: true
+  file: 
+    path: /etc/yum.repos.d/docker.repo
+    state: absent

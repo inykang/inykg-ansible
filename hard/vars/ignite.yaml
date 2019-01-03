@@ -1,0 +1,10 @@
+---
+
+ignite_mount_root: /data
+ignite_master_host: '{{ play_hosts[0] }}'
+ignite_port_11211: 11211
+ignite_port_47100: 47100
+ignite_port_47500: 47500
+ignite_port_49112: 49112
+ignite_version: 2.4.0
+ignite_image: prireg:5000/ignite:"{{ ignite_version }}"

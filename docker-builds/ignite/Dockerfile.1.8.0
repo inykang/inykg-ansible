@@ -1,0 +1,24 @@
+FROM prireg:5000/alpine-s6-jdk8:3.4-8u112
+
+# Ignite version 
+ENV IGNITE_VERSION 1.8.0 
+
+# Ignite home 
+ENV IGNITE_HOME /opt/ignite
+
+RUN wget http://www.us.apache.org/dist/ignite/${IGNITE_VERSION}/apache-ignite-fabric-${IGNITE_VERSION}-bin.zip \
+    && unzip -d /opt apache-ignite-fabric-${IGNITE_VERSION}-bin.zip \
+    && ln -s /opt/apache-ignite-fabric-${IGNITE_VERSION}-bin /opt/ignite \
+    && rm apache-ignite-fabric-${IGNITE_VERSION}-bin.zip 
+
+# Copy config template
+COPY ./default-config.xml.template $IGNITE_HOME/config/default-config.xml
+
+# Copy sh files and set permission 
+COPY ./run-ignite.sh /etc/services.d/ignite/run
+
+RUN chmod +x /etc/services.d/ignite/run
+
+WORKDIR $IGNITE_HOME
+
+EXPOSE 11211 47100 47500 49112

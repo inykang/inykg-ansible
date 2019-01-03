@@ -1,0 +1,12 @@
+---
+#
+- name: shutdown and remove zookeeper cluster members
+  shell: "{{ item }}"
+  with_items:
+    - docker stop {{ group_prefix }}-zookeeper
+    - docker rm {{ group_prefix }}-zookeeper
+  tags: ['zookeeper-except-data']
+  
+- name: remove zookeeper mount directories - {{ zookeeper_mount_root }}/{{ group_prefix }}/zookeeper
+  become: true
+  file: path={{ zookeeper_mount_root }}/{{ group_prefix }}/zookeeper state=absent

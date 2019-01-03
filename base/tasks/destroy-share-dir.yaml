@@ -1,0 +1,50 @@
+---
+
+- name: remove the mount point({{ share_mount_dir }}) from /etc/glusterfs/gfstab
+  become: true
+  lineinfile:
+    dest: /etc/glusterfs/gfstab
+    regexp: '{{ share_mount_dir | regex_replace("\/", "\/")}}'
+    state: absent
+
+- name: restart glusterfs_mounts.service
+  become: true
+  service:
+    name: glusterfs_mounts.service
+    state: restarted
+
+- name: restart docker.service
+  become: true
+  service:
+    name: docker.service
+    state: restarted
+
+- name: remove the mount point({{ share_mount_dir }}) for the volume({{ share_volume_name }})
+  become: true
+  file:
+    path: '{{ share_mount_dir }}'
+    state: absent
+
+- name: stop volume {{ share_volume_name }} 
+  when: ansible_hostname == play_hosts[0]
+  become: true
+  expect:
+    command: gluster volume stop {{ share_volume_name }}
+    responses:
+       '.* $': 'y'
+  any_errors_fatal: true
+
+- name: delete volume {{ share_volume_name }}
+  when: ansible_hostname == play_hosts[0]
+  become: true
+  expect:
+    command: gluster volume delete {{ share_volume_name }}
+    responses:
+      '.* $': 'y'
+  any_errors_fatal: true
+
+- name: delete bricks ({{ share_bricks_root_dir }}/.bricks/{{ share_bricks_prefix }}-index)
+  become: true
+  file:
+    path: '{{ share_bricks_root_dir }}/.bricks/{{ share_bricks_prefix }}-{{ play_hosts.index(ansible_hostname) }}'
+    state: absent

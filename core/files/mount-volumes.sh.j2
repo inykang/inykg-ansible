@@ -1,0 +1,34 @@
+#!/bin/sh
+
+while read source target
+do
+  # skip comment line
+  [[ "$source" =~ ^#.*$ ]] && continue
+
+  echo "try to mount $source to $target"
+
+  # skip when target already mounted
+  mounted=$(df | grep ${target})
+  if [[ ! $mounted = "" ]]
+  then
+        echo "$target already mounted"
+        continue
+  fi
+
+
+  # try to mount
+  while true
+  do
+    # try to mount
+    mount -t glusterfs "$source" "$target"
+    if [[ ! $? = 0  && ! $? = 31 ]] # failed to mount
+    then
+      echo "retrying ..."
+      sleep 3
+      continue
+    else
+      echo "$source is mounted on $target"
+      break
+    fi
+  done
+done

@@ -1,0 +1,368 @@
+# vim:ft=ansible:
+---
+
+- name: ensure Hadoop data directory - {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop
+  become: true
+  file: path={{ hadoop_mount_root }}/{{ group_prefix }}/hadoop state=directory owner=1000 group=1000
+
+## check if firewall is running
+#- name: check if firewall running
+#  become: true
+#  command: firewall-cmd --state
+#  register: firewall_state
+#  ignore_errors: true
+#
+#- name: modify firewall for hadoop communications on the master node
+#  when: (firewall_state.stdout == "running") and (inventory_hostname == "{{ master_node_host }}")
+#  become: true
+#  command: firewall-cmd --zone=public --add-port={{ item }}/tcp --permanent
+#  with_items:
+#    - "{{ hadoop_publish_8020 }}"
+#    - "{{ hadoop_publish_50070 }}"
+#    - "{{ hadoop_publish_50090 }}"
+#    - "{{ hadoop_publish_8030 }}"
+#    - "{{ hadoop_publish_8031 }}"
+#    - "{{ hadoop_publish_8032 }}"
+#    - "{{ hadoop_publish_8033 }}"
+#    - "{{ hadoop_publish_8088 }}"
+#    - "{{ hadoop_publish_10200 }}"
+#    - "{{ hadoop_publish_8188 }}"
+#    - "{{ hadoop_publish_8190 }}"
+#    - "{{ hadoop_publish_10020 }}"
+#    - "{{ hadoop_publish_19888 }}"
+#    - "{{ hadoop_publish_10033 }}"
+#
+#- name: modify firewall for hadoop communications on all nodes
+#  when: firewall_state.stdout == "running"
+#  become: true
+#  command: firewall-cmd --zone=public --add-port={{ item }}/tcp --permanent
+#  with_items:
+#    - "{{ hadoop_publish_50010 }}"
+#    - "{{ hadoop_publish_50020 }}"
+#    - "{{ hadoop_publish_50075 }}"
+#    - "{{ hadoop_publish_8040 }}"
+#    - "{{ hadoop_publish_8042 }}"
+#
+#- name: Reload firewall rules
+#  when: firewall_state.stdout == "running"
+#  become: true
+#  command: firewall-cmd --reload
+
+# this is for use of weave proxy
+#- name: get weave env
+#  command: weave env
+#  register: weave_env
+
+# this is for use of weave net plaugin
+- name: get dns-args of weavenet
+  command: weave dns-args
+  register: dns_args
+
+- name: run hadoop name node container
+  when: inventory_hostname == "{{ master_node_host }}"
+  #shell: |
+  #  weave run -d --restart always \
+  #  --name {{ group_prefix }}-hadoop-name-node \
+  #  --label SERVICE_NAME={{ group_prefix }}-hadoop-name-node \
+  #  -e NAME_NODE_HOST={{ group_prefix  }}-hadoop-name-node \
+  #  -e NAME_NODE_FS_PORT={{ hadoop_publish_8020 }} \
+  #  -e NAME_NODE_HTTP_PORT={{ hadoop_publish_50070 }} \
+  #  -p {{ hadoop_publish_8020 }}:8020 \
+  #  -p {{ hadoop_publish_50070 }}:50070 \
+  #  -v {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop:{{ hadoop_mount_root }} \
+  #  {{ hadoop_name_node_image }}
+  #environment:
+  #  DOCKER_HOST: unix:///var/run/weave/weave.sock
+  #shell: |
+  #  docker run -d --restart always \
+  #  --name {{ group_prefix }}-hadoop-name-node \
+  #  --label SERVICE_NAME={{ group_prefix }}-hadoop-name-node \
+  #  -e NAME_NODE_HOST={{ group_prefix  }}-hadoop-name-node \
+  #  -e NAME_NODE_FS_PORT={{ hadoop_publish_8020 }} \
+  #  -e NAME_NODE_HTTP_PORT={{ hadoop_publish_50070 }} \
+  #  -p {{ hadoop_publish_8020 }}:8020 \
+  #  -p {{ hadoop_publish_50070 }}:50070 \
+  #  -v {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop:{{ hadoop_mount_root }} \
+  #  {{ hadoop_name_node_image }}
+  shell: |
+    docker run -d --restart always \
+    --name {{ group_prefix }}-hadoop-name-node \
+    --label SERVICE_NAME={{ group_prefix }}-hadoop-name-node \
+    --network weave \
+    --hostname {{ group_prefix  }}-hadoop-name-node.{{ weavenet_domain }}.local \
+    {{ dns_args.stdout }} \
+    -e NAME_NODE_HOST={{ group_prefix  }}-hadoop-name-node \
+    -e NAME_NODE_FS_PORT={{ hadoop_publish_8020 }} \
+    -e NAME_NODE_HTTP_PORT={{ hadoop_publish_50070 }} \
+    -p {{ hadoop_publish_8020 }}:8020 \
+    -p {{ hadoop_publish_50070 }}:50070 \
+    -v {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop:{{ hadoop_mount_root }} \
+    {{ hadoop_name_node_image }}
+  #shell: |
+  #  docker run -d --restart always \
+  #  --name {{ group_prefix }}-hadoop-name-node \
+  #  --label SERVICE_NAME={{ group_prefix }}-hadoop-name-node \
+  #  --network host \
+  #  -e NAME_NODE_HOST={{ hostvars[ansible_hostname][public_interface]['ipv4']['address'] }} \
+  #  -e NAME_NODE_FS_PORT={{ hadoop_publish_8020 }} \
+  #  -e NAME_NODE_HTTP_PORT={{ hadoop_publish_50070 }} \
+  #  -p {{ hadoop_publish_8020 }}:8020 \
+  #  -p {{ hadoop_publish_50070 }}:50070 \
+  #  -v {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop:{{ hadoop_mount_root }} \
+  #  {{ hadoop_name_node_image }}
+
+- name: run hadoop secondary name node container
+  when: inventory_hostname == "{{ master_node_host }}"
+  #environment:
+  #  DOCKER_HOST: unix:///var/run/weave/weave.sock
+  #shell: |
+  #  docker run -d --restart always \
+  #  --name {{ group_prefix }}-hadoop-secondary-name-node \
+  #  --label SERVICE_NAME={{ group_prefix }}-hadoop-secondary-name-node \
+  #  -e NAME_NODE_HOST={{ group_prefix  }}-hadoop-name-node \
+  #  -e NAME_NODE_FS_PORT={{ hadoop_publish_8020 }} \
+  #  -p {{ hadoop_publish_50090 }}:50090 \
+  #  -v {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop:{{ hadoop_mount_root }} \
+  #  {{ hadoop_secondary_name_node_image }}
+  shell: |
+    docker run -d --restart always \
+    --name {{ group_prefix }}-hadoop-secondary-name-node \
+    --label SERVICE_NAME={{ group_prefix }}-hadoop-secondary-name-node \
+    --network weave \
+    --hostname {{ group_prefix  }}-hadoop-secondary-name-node.{{ weavenet_domain }}.local \
+    {{ dns_args.stdout }} \
+    -e NAME_NODE_HOST={{ group_prefix  }}-hadoop-name-node \
+    -e NAME_NODE_FS_PORT={{ hadoop_publish_8020 }} \
+    -p {{ hadoop_publish_50090 }}:50090 \
+    -v {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop:{{ hadoop_mount_root }} \
+    {{ hadoop_secondary_name_node_image }}
+  #shell: |
+  #  docker run -d --restart always \
+  #  --name {{ group_prefix }}-hadoop-secondary-name-node \
+  #  --label SERVICE_NAME={{ group_prefix }}-hadoop-secondary-name-node \
+  #  --network host \
+  #  -e NAME_NODE_HOST={{ hostvars[master_node_host][public_interface]['ipv4']['address'] }} \
+  #  -e NAME_NODE_FS_PORT={{ hadoop_publish_8020 }} \
+  #  -p {{ hadoop_publish_50090 }}:50090 \
+  #  -v {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop:{{ hadoop_mount_root }} \
+  #  {{ hadoop_secondary_name_node_image }}
+
+- name: run hadoop resource manager container
+  when: inventory_hostname == "{{ master_node_host }}"
+  #environment:
+  #  DOCKER_HOST: unix:///var/run/weave/weave.sock
+  #shell: |
+  #  docker run -d --restart always \
+  #  --name {{ group_prefix }}-hadoop-resource-manager \
+  #  --label SERVICE_NAME={{ group_prefix }}-hadoop-resource-manager \
+  #  -e NAME_NODE_HOST={{ group_prefix  }}-hadoop-name-node \
+  #  -e NAME_NODE_FS_PORT={{ hadoop_publish_8020 }} \
+  #  -e RESOURCE_MANAGER_HOST={{ group_prefix  }}-hadoop-resource-manager \
+  #  -p {{ hadoop_publish_8030 }}:8030 \
+  #  -p {{ hadoop_publish_8031 }}:8031 \
+  #  -p {{ hadoop_publish_8032 }}:8032 \
+  #  -p {{ hadoop_publish_8033 }}:8033 \
+  #  -p {{ hadoop_publish_8088 }}:8088 \
+  #  -v {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop:{{ hadoop_mount_root }} \
+  #  {{ hadoop_resource_manager_image }}
+  shell: |
+    docker run -d --restart always \
+    --name {{ group_prefix }}-hadoop-resource-manager \
+    --label SERVICE_NAME={{ group_prefix }}-hadoop-resource-manager \
+    --network weave \
+    --hostname {{ group_prefix  }}-hadoop-resource-manager.{{ weavenet_domain }}.local \
+    {{ dns_args.stdout }} \
+    -e NAME_NODE_HOST={{ group_prefix  }}-hadoop-name-node \
+    -e NAME_NODE_FS_PORT={{ hadoop_publish_8020 }} \
+    -e RESOURCE_MANAGER_HOST={{ group_prefix  }}-hadoop-resource-manager \
+    -e TIMELINE_SERVER_HOST={{ group_prefix  }}-hadoop-yarn-timeline-server \
+    -e TIMELINE_SERVER_PORT={{ hadoop_publish_10200  }} \
+    -e TIMELINE_SERVER_WEB_PORT={{ hadoop_publish_8188  }} \
+    -e TIMELINE_SERVER_WEB_HTTPS_PORT={{ hadoop_publish_8190  }} \
+    -p {{ hadoop_publish_8030 }}:8030 \
+    -p {{ hadoop_publish_8031 }}:8031 \
+    -p {{ hadoop_publish_8032 }}:8032 \
+    -p {{ hadoop_publish_8033 }}:8033 \
+    -p {{ hadoop_publish_8088 }}:8088 \
+    -v {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop:{{ hadoop_mount_root }} \
+    {{ hadoop_resource_manager_image }}
+  #shell: |
+  #  docker run -d --restart always \
+  #  --name {{ group_prefix }}-hadoop-resource-manager \
+  #  --label SERVICE_NAME={{ group_prefix }}-hadoop-resource-manager \
+  #  --network host \
+  #  -e NAME_NODE_HOST={{ hostvars[master_node_host][public_interface]['ipv4']['address'] }} \
+  #  -e NAME_NODE_FS_PORT={{ hadoop_publish_8020 }} \
+  #  -e RESOURCE_MANAGER_HOST={{ hostvars[ansible_hostname][public_interface]['ipv4']['address'] }} \
+  #  -p {{ hadoop_publish_8030 }}:8030 \
+  #  -p {{ hadoop_publish_8031 }}:8031 \
+  #  -p {{ hadoop_publish_8032 }}:8032 \
+  #  -p {{ hadoop_publish_8033 }}:8033 \
+  #  -p {{ hadoop_publish_8088 }}:8088 \
+  #  -v {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop:{{ hadoop_mount_root }} \
+  #  {{ hadoop_resource_manager_image }}
+
+- name: run hadoop job history server container
+  when: inventory_hostname == "{{ master_node_host }}"
+  #environment:
+  #  DOCKER_HOST: unix:///var/run/weave/weave.sock
+  #shell: |
+  #  docker run -d --restart always \
+  #  --name {{ group_prefix }}-hadoop-job-history-server \
+  #  --label SERVICE_NAME={{ group_prefix }}-hadoop-job-history-server \
+  #  -e NAME_NODE_HOST={{ group_prefix  }}-hadoop-name-node \
+  #  -e NAME_NODE_FS_PORT={{ hadoop_publish_8020 }} \
+  #  -p {{ hadoop_publish_10020 }}:10020 \
+  #  -p {{ hadoop_publish_19888 }}:19888 \
+  #  -p {{ hadoop_publish_10033 }}:10033 \
+  #  -v {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop:{{ hadoop_mount_root }} \
+  #  {{ hadoop_job_history_server_image }}
+  shell: |
+    docker run -d --restart always \
+    --name {{ group_prefix }}-hadoop-job-history-server \
+    --label SERVICE_NAME={{ group_prefix }}-hadoop-job-history-server \
+    --network weave \
+    --hostname {{ group_prefix  }}-hadoop-job-history-server.{{ weavenet_domain }}.local \
+    {{ dns_args.stdout }} \
+    -e NAME_NODE_HOST={{ group_prefix  }}-hadoop-name-node \
+    -e NAME_NODE_FS_PORT={{ hadoop_publish_8020 }} \
+    -p {{ hadoop_publish_10020 }}:10020 \
+    -p {{ hadoop_publish_19888 }}:19888 \
+    -p {{ hadoop_publish_10033 }}:10033 \
+    -v {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop:{{ hadoop_mount_root }} \
+    {{ hadoop_job_history_server_image }}
+  #shell: |
+  #  docker run -d --restart always \
+  #  --name {{ group_prefix }}-hadoop-job-history-server \
+  #  --label SERVICE_NAME={{ group_prefix }}-hadoop-job-history-server \
+  #  --network host \
+  #  -e NAME_NODE_HOST={{ hostvars[master_node_host][public_interface]['ipv4']['address'] }} \
+  #  -e NAME_NODE_FS_PORT={{ hadoop_publish_8020 }} \
+  #  -p {{ hadoop_publish_10020 }}:10020 \
+  #  -p {{ hadoop_publish_19888 }}:19888 \
+  #  -p {{ hadoop_publish_10033 }}:10033 \
+  #  -v {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop:{{ hadoop_mount_root }} \
+  #  {{ hadoop_job_history_server_image }}
+
+- name: run hadoop yarn timeline server container
+  when: inventory_hostname == "{{ master_node_host }}"
+  shell: |
+    docker run -d --restart always \
+    --name {{ group_prefix }}-hadoop-yarn-timeline-server \
+    --label SERVICE_NAME={{ group_prefix }}-hadoop-yarn-timeline-server \
+    --network weave \
+    --hostname {{ group_prefix  }}-hadoop-yarn-timeline-server.{{ weavenet_domain }}.local \
+    {{ dns_args.stdout }} \
+    -e NAME_NODE_HOST={{ group_prefix  }}-hadoop-name-node \
+    -e NAME_NODE_FS_PORT={{ hadoop_publish_8020 }} \
+    -p {{ hadoop_publish_10200 }}:10200 \
+    -p {{ hadoop_publish_8188 }}:8188 \
+    -p {{ hadoop_publish_8190 }}:8190 \
+    -v {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop:{{ hadoop_mount_root }} \
+    {{ hadoop_yarn_timeline_server_image }}
+
+- name: run hadoop data node containers
+  #shell: |
+  #  weave run -d --restart always \
+  #  --name {{ group_prefix }}-hadoop-data-node-{{ play_hosts.index(ansible_hostname) }} \
+  #  --label SERVICE_NAME={{ group_prefix }}-hadoop-data-node \
+  #  -e NAME_NODE_HOST={{ group_prefix  }}-hadoop-name-node \
+  #  -e NAME_NODE_FS_PORT={{ hadoop_publish_8020 }} \
+  #  -e NAME_NODE_HTTP_PORT={{ hadoop_publish_50070 }} \
+  #  -p {{ hadoop_publish_50010 }}:50010 \
+  #  -p {{ hadoop_publish_50020 }}:50020 \
+  #  -p {{ hadoop_publish_50075 }}:50075 \
+  #  -v {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop:{{ hadoop_mount_root }} \
+  #  {{ hadoop_data_node_image }}
+  #environment:
+  #  DOCKER_HOST: unix:///var/run/weave/weave.sock
+  #shell: |
+  #  docker run -d --restart always \
+  #  --name {{ group_prefix }}-hadoop-data-node-{{ play_hosts.index(ansible_hostname) }} \
+  #  --label SERVICE_NAME={{ group_prefix }}-hadoop-data-node \
+  #  -e NAME_NODE_HOST={{ group_prefix  }}-hadoop-name-node \
+  #  -e NAME_NODE_FS_PORT={{ hadoop_publish_8020 }} \
+  #  -e NAME_NODE_HTTP_PORT={{ hadoop_publish_50070 }} \
+  #  -p {{ hadoop_publish_50010 }}:50010 \
+  #  -p {{ hadoop_publish_50020 }}:50020 \
+  #  -p {{ hadoop_publish_50075 }}:50075 \
+  #  -v {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop:{{ hadoop_mount_root }} \
+  #  {{ hadoop_data_node_image }}
+  shell: |
+    docker run -d --restart always \
+    --name {{ group_prefix }}-hadoop-data-node-{{ play_hosts.index(ansible_hostname) }} \
+    --label SERVICE_NAME={{ group_prefix }}-hadoop-data-node \
+    --network weave \
+    --hostname {{ group_prefix  }}-hadoop-data-node-{{ play_hosts.index(ansible_hostname) }}.{{ weavenet_domain }}.local \
+    {{ dns_args.stdout }} \
+    -e NAME_NODE_HOST={{ group_prefix  }}-hadoop-name-node \
+    -e NAME_NODE_FS_PORT={{ hadoop_publish_8020 }} \
+    -e NAME_NODE_HTTP_PORT={{ hadoop_publish_50070 }} \
+    -p {{ hadoop_publish_50010 }}:50010 \
+    -p {{ hadoop_publish_50020 }}:50020 \
+    -p {{ hadoop_publish_50075 }}:50075 \
+    -v {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop:{{ hadoop_mount_root }} \
+    {{ hadoop_data_node_image }}
+  #shell: |
+  #  docker run -d --restart always \
+  #  --name {{ group_prefix }}-hadoop-data-node \
+  #  --label SERVICE_NAME={{ group_prefix }}-hadoop-data-node \
+  #  --network host \
+  #  -e NAME_NODE_HOST={{ hostvars[master_node_host][public_interface]['ipv4']['address'] }} \
+  #  -e NAME_NODE_FS_PORT={{ hadoop_publish_8020 }} \
+  #  -e NAME_NODE_HTTP_PORT={{ hadoop_publish_50070 }} \
+  #  -p {{ hadoop_publish_50010 }}:50010 \
+  #  -p {{ hadoop_publish_50020 }}:50020 \
+  #  -p {{ hadoop_publish_50075 }}:50075 \
+  #  -v {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop:{{ hadoop_mount_root }} \
+  #  {{ hadoop_data_node_image }}
+
+- name: run hadoop node manager containers
+  #environment:
+  #  DOCKER_HOST: unix:///var/run/weave/weave.sock
+  #shell: |
+  #  docker run -d --restart always \
+  #  --name {{ group_prefix }}-hadoop-node-manager-{{ play_hosts.index(ansible_hostname) }} \
+  #  --label SERVICE_NAME={{ group_prefix }}-hadoop-node-manager \
+  #  -e NAME_NODE_HOST={{ group_prefix  }}-hadoop-name-node \
+  #  -e NAME_NODE_FS_PORT={{ hadoop_publish_8020 }} \
+  #  -e RESOURCE_MANAGER_HOST={{ group_prefix  }}-hadoop-resource-manager \
+  #  -e RESOURCE_MANAGER_PORT={{ hadoop_publish_8032 }} \
+  #  -e RESOURCE_MANAGER_RESOURCE_TRACKER_PORT={{ hadoop_publish_8031 }} \
+  #  -e RESOURCE_MANAGER_SCHEDULER_PORT={{ hadoop_publish_8030 }} \
+  #  -p {{ hadoop_publish_8040 }}:8040 \
+  #  -p {{ hadoop_publish_8042 }}:8042 \
+  #  -v {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop:{{ hadoop_mount_root }} \
+  #  {{ hadoop_node_manager_image }}
+  shell: |
+    docker run -d --restart always \
+    --name {{ group_prefix }}-hadoop-node-manager-{{ play_hosts.index(ansible_hostname) }} \
+    --label SERVICE_NAME={{ group_prefix }}-hadoop-node-manager \
+    --network weave \
+    --hostname {{ group_prefix  }}-hadoop-node-manager-{{ play_hosts.index(ansible_hostname) }}.{{ weavenet_domain }}.local \
+    {{ dns_args.stdout }} \
+    -e NAME_NODE_HOST={{ group_prefix  }}-hadoop-name-node \
+    -e NAME_NODE_FS_PORT={{ hadoop_publish_8020 }} \
+    -e RESOURCE_MANAGER_HOST={{ group_prefix  }}-hadoop-resource-manager \
+    -e RESOURCE_MANAGER_PORT={{ hadoop_publish_8032 }} \
+    -e RESOURCE_MANAGER_RESOURCE_TRACKER_PORT={{ hadoop_publish_8031 }} \
+    -e RESOURCE_MANAGER_SCHEDULER_PORT={{ hadoop_publish_8030 }} \
+    -p {{ hadoop_publish_8040 }}:8040 \
+    -p {{ hadoop_publish_8042 }}:8042 \
+    -v {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop:{{ hadoop_mount_root }} \
+    {{ hadoop_node_manager_image }}
+  #shell: |
+  #  docker run -d --restart always \
+  #  --name {{ group_prefix }}-hadoop-node-manager \
+  #  --label SERVICE_NAME={{ group_prefix }}-hadoop-node-manager \
+  #  --network host \
+  #  -e NAME_NODE_HOST={{ hostvars[master_node_host][public_interface]['ipv4']['address'] }} \
+  #  -e NAME_NODE_FS_PORT={{ hadoop_publish_8020 }} \
+  #  -e RESOURCE_MANAGER_HOST={{ hostvars[master_node_host][public_interface]['ipv4']['address'] }} \
+  #  -e RESOURCE_MANAGER_PORT={{ hadoop_publish_8032 }} \
+  #  -e RESOURCE_MANAGER_RESOURCE_TRACKER_PORT={{ hadoop_publish_8031 }} \
+  #  -e RESOURCE_MANAGER_SCHEDULER_PORT={{ hadoop_publish_8030 }} \
+  #  -p {{ hadoop_publish_8040 }}:8040 \
+  #  -p {{ hadoop_publish_8042 }}:8042 \
+  #  -v {{ hadoop_mount_root }}/{{ group_prefix }}/hadoop:{{ hadoop_mount_root }} \
+  #  {{ hadoop_node_manager_image }}

@@ -1,0 +1,64 @@
+---
+
+- hosts: cents
+#- hosts: hds
+  any_errors_fatal: true
+  vars:
+#    public_interface: ansible_enp0s17
+#    public_interface: ansible_eth0
+    group_prefix: prod
+    use_log_driver: false
+  vars_files:
+    - vars/weavenet.yaml
+    - vars/elk.yaml
+    - vars/meetup-stream.yaml
+    - vars/zookeeper.yaml
+    - vars/kafka.yaml
+    - vars/cassandra.yaml
+    - vars/cep.yaml
+    - vars/hadoop.yaml
+    - vars/spark.yaml
+    - vars/micro-cep.yaml
+    - vars/ignite.yaml
+    - vars/flink.yaml
+  tasks:
+# depends on docker
+    - import_tasks: tasks/enable-weavenet.yaml
+      tags: ['weavenet']
+
+# depends on docker swarm mode
+    - import_tasks: tasks/create-elk.yaml
+      tags: ['elk']
+
+    - import_tasks: tasks/create-meetup-stream.yaml
+      tags: ['meetup']
+
+    - import_tasks: tasks/create-zookeeper.yaml
+      tags: ['zookeeper']
+# depends on zookeeper, zookeeper_publish_2181
+    - import_tasks: tasks/create-kafka.yaml
+      tags: ['kafka']
+
+    - import_tasks: tasks/create-cassandra.yaml
+      tags: ['cassandra']
+# depends on cassandra and kafka
+    - import_tasks: tasks/create-obzen-cep.yaml
+      tags: ['cep']
+
+    - import_tasks: tasks/create-obzen-micro-cep-env.yaml
+      tags: ['micro-cep-env']
+
+    - import_tasks: tasks/create-obzen-micro-cep-example.yaml
+      tags: ['micro-cep-example']
+
+    - import_tasks: tasks/create-hadoop.yaml
+      tags: ['hadoop']
+
+    - import_tasks: tasks/create-spark-standalone.yaml
+      tags: ['spark']
+
+    - import_tasks: tasks/create-ignite.yaml
+      tags: ['ignite']
+
+    - import_tasks: tasks/create-flink.yaml
+      tags: ['flink']

@@ -1,0 +1,19 @@
+---
+
+spark_master_host: "{{ play_hosts[0] }}"
+spark_mount_root: /data
+# Master node
+spark_publish_6066: 6066
+spark_publish_7077: 7077
+spark_publish_8080: 8080
+# Slave nodes
+spark_publish_8081: 8081
+spark_publish_40201: 40201
+spark_publish_4040_4070: 4040-4070
+spark_publish_10000: 10000
+# Images
+spark_master_image: prireg:5000/spark-master:1.6.2-2.6
+spark_slave_image: prireg:5000/spark-slave:1.6.2-2.6
+spark_cmd_image: prireg:5000/spark-cmd:1.6.2-2.6
+# mysql location
+spark_mysql_host: 192.168.10.58

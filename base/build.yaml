@@ -1,0 +1,36 @@
+---
+
+- hosts: cents
+  any_errors_fatal: true
+  vars:
+#    public_interface: ansible_enp0s17
+#    public_interface: ansible_eth0
+  vars_files:
+#    - vars/etcd.yaml
+    - vars/docker.yaml
+#    - vars/flannel.yaml
+    - vars/swarm.yaml
+    - vars/gluster.yaml
+    - vars/share-dir.yaml
+    - vars/hosts.yaml
+    - vars/prireg.yaml
+  tasks:
+    - import_tasks: tasks/enable-docker.yaml
+      tags: ['docker']
+
+# depends on docker
+    - import_tasks: tasks/enable-docker-swarm.yaml
+      tags: ['swarm']
+#
+# depends on docker
+    - import_tasks: tasks/enable-gluster.yaml
+      tags: ['gluster']
+#
+    - import_tasks: tasks/create-share-dir.yaml
+      tags: ['share-dir']
+#
+    - import_tasks: tasks/add-hosts.yaml
+      tags: ['hosts']
+#
+    - import_tasks: tasks/create-prireg.yaml
+      tags: ['prireg']

@@ -1,0 +1,95 @@
+---
+- name: if it exist, remove old symbolic link
+  become: true
+  file:
+    path: /opt/ignite
+    state: absent
+
+- name: extract image to /opt
+  become: true
+  unarchive:
+    src: images/apache-ignite-fabric-{{ ignite_version }}-bin.zip
+    owner: ecube
+    group: ecube
+    dest: /opt
+    
+- name: create symbolic link
+  become: true
+  file:
+    src: /opt/apache-ignite-fabric-{{ ignite_version }}-bin
+    dest: /opt/ignite
+    owner: ecube
+    group: ecube
+    state: link
+
+- name: make directories
+  become: true
+  file:
+    path: "{{ item }}"
+    owner: ecube
+    group: ecube
+    state: directory
+  with_items:
+    - /opt/ignite/data
+    - /data/logs/ignite
+
+- name: copy shell scripts
+  become: true
+  copy: 
+    src: files/ignite/{{ item }}
+    dest: /opt/ignite/{{ item }}
+    mode: 0755
+  with_items:
+    - obz-init-load.sh
+    - start-ignite.sh
+    - stop-ignite.sh
+  
+#- name: copy data, caches
+#  become: true
+#  copy: 
+#    src: images/ignite/{{ item }}
+#    dest: /opt/ignite/
+#  with_items:
+#    - caches
+#    - data
+
+- name: copy properties
+  become: true
+  copy: 
+    src: files/ignite/{{ item }}
+    dest: /opt/ignite/config/{{ item }}
+  with_items:
+    - rest.properties
+    - log4j.properties
+
+- name: set local address
+  become: true
+  lineinfile:
+    path: /opt/ignite/config/rest.properties
+    regexp: '^ignite\.conf\.localAddress = %localAddress%'
+    line: 'ignite.conf.localAddress = {{ ansible_default_ipv4.address }}'
+
+- name: retrieves IP
+  debug: msg={{ hostvars[item][public_interface]['ipv4']['address']}}:49501
+  with_items:
+    - '{{ play_hosts }}'
+  register: ip_addresses
+
+- name: make IGNITE_HOSTS variable
+  debug: msg={{ ip_addresses.results | map(attribute='msg') | join(',') }}
+  register: ignite_hosts
+
+- name: set all ignite hosts
+  become: true
+  lineinfile:
+    path: /opt/ignite/config/rest.properties
+    regexp: '^ignite\.conf\.hostAddresses = %hostAddresses%'
+    line: 'ignite.conf.hostAddresses = {{ ignite_hosts.msg }}'
+
+- name: change owner to ecube
+  become: true
+  file:
+    path: /opt/apache-ignite-fabric-{{ ignite_version }}-bin
+    owner: ecube
+    group: ecube
+    recurse: yes

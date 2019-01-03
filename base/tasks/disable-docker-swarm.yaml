@@ -1,0 +1,38 @@
+---
+
+- name: demote other managers but the initial one
+  when: (ansible_hostname != play_hosts[0])
+  command: docker node demote {{ ansible_hostname }}
+
+- name: leave the swarm but the initial one
+  when: (ansible_hostname != play_hosts[0])
+  command: docker swarm leave
+
+- name: the last swarm manager leaves swarm forcibly
+  when: (ansible_hostname == play_hosts[0])
+  command: docker swarm leave --force
+
+# Check if firewall enabled
+#- name: check if iptables enabled
+#  become: true
+#  command: systemctl is-active iptables
+#  register: iptables_state
+#  ignore_errors: true
+
+#- name: remove firewall rules for docker swarm ingress network
+#  when: iptables_state.stdout == "active"
+#  become: true
+#  iptables:
+#    chain: INPUT
+#    protocol: '{{ item.protocol }}'
+#    destination_port: '{{ item.port }}'
+#    jump: ACCEPT
+#    state: absent
+#  with_items:
+#    - "{{ swarm_ports }}"
+#  any_errors_fatal: true
+
+#- name: save firewall rules
+#  when: iptables_state.stdout == "active"
+#  become: true
+#  command: /sbin/service iptables save

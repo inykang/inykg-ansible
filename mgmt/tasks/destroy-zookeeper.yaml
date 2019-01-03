@@ -1,0 +1,20 @@
+---
+# stop zookeeper servers
+- name: shutdown and remove zookeeper cluster members
+  shell: "/opt/zookeeper/bin/zkServer.sh stop"
+
+# remove zookeeper data directories
+#- name: remove zookeeper data directories - {{ zookeeper_mount_root }}/{{ group_prefix }}/zookeeper
+#  become: true
+#  file: 
+#    path: {{ zookeeper_mount_root }}/{{ group_prefix }}/zookeeper 
+#    state: absent
+
+- name: remove zookeeper product directory
+  become: true
+  file:
+    path: '{{ item }}'
+    state: absent
+  with_items:
+    - '/opt/zookeeper'
+    - '/opt/zookeeper-{{ zookeeper_version }}'

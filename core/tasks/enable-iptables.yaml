@@ -1,0 +1,83 @@
+---
+
+  - name: disable firewalld service
+    become: true
+    service: 
+      name: firewalld 
+      enabled: no 
+      state: stopped
+    
+  - name: install iptables instead
+    become: true
+    yum:
+      name: iptables-services
+      state: present
+
+  - name: enable iptables service
+    become: true
+    service:
+      name: iptables
+      enabled: true
+      state: started
+
+  - name: delete reject-with icmp-host-prohibited rule
+    become: true
+    iptables:
+      chain: '{{ item }}'
+      reject_with: icmp-host-prohibited
+      state: absent
+    with_items:
+      - INPUT
+      - FORWARD
+
+# check if firewall running
+  - name: check if iptables running
+    become: true
+    command: systemctl is-active iptables
+    register: iptables_state
+    ignore_errors: true
+
+# Use if firewalld is enabled
+  - name: open port {{ docker_remote_port }} for Docker Remote API
+    when: iptables_state.stdout == "active"
+    become: true
+    iptables:
+      action: insert
+      chain: INPUT
+      protocol: '{{ docker_remote_port.protocol }}'
+      destination_port: '{{ docker_remote_port.port }}'
+      jump: ACCEPT
+      state: present
+    any_errors_fatal: true
+
+  - name: open ports for docker swarm ingress network
+    when: iptables_state.stdout == "active"
+    become: true
+    iptables:
+      action: insert
+      chain: INPUT
+      protocol: '{{ item.protocol }}'
+      destination_port: '{{ item.port }}'
+      jump: ACCEPT
+      state: present
+    with_items:
+      - "{{ swarm_ports }}"
+    any_errors_fatal: true
+
+  - name: configure iptables for gluster
+    when: iptables_state.stdout == "active"
+    become: true
+    iptables: 
+      action: insert
+      chain: INPUT
+      protocol: '{{ item.protocol }}'
+      destination_port: '{{ item.port }}'
+      jump: ACCEPT
+      state: present
+    with_items:
+      - "{{ gluster_ports }}"
+    any_errors_fatal: true
+
+  - name: save firewall rules
+    become: true
+    command: iptables-save

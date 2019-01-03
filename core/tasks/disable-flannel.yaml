@@ -1,0 +1,16 @@
+---
+
+- name: uninstall flannel
+  become: true
+  yum: name=flannel state=absent
+#
+- name: rm etcd key for flannel
+  when: inventory_hostname == "{{ play_hosts[0] }}"
+  command: etcdctl rm /atomic.io/network/config --recursive
+#
+- name: deconfigure firewall for flannel
+  become: true
+  command: firewall-cmd {{ item }}
+  with_items:
+    - --zone=public --remove-port={{ flannel_backend_port }}/udp --permanent
+    - --reload

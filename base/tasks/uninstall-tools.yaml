@@ -1,0 +1,35 @@
+---
+
+- name: uninstall net-tools
+  become: true
+  yum:
+    name: net-tools
+    state: absent
+
+# for ansible expect module
+- name: uninstall pexpect
+  become: true
+  pip:
+    name: pexpect
+    state: absent
+
+- name: uninstall docker-py
+  become: true
+  pip:
+    name: docker-py
+    state: absent
+
+# for Python related and extra
+- name: uinstall pip
+  become: true
+  yum:
+    name: '{{ item }}'
+    state: absent
+  with_items:
+    - python-pip
+
+- name: unstall EPEL Repository
+  become: true
+  yum:
+    name: http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-8.noarch.rpm
+    state: absent
